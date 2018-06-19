@@ -8,13 +8,18 @@ def calculate_brightest_background(video_path, num_backgrounds = 1, save_backgro
     Calculate the background of a video as the brightest pixel values throughout the entire video.
     ** Assumes that objects in the foreground are always darker than the background.
 
-    Arguments:
-        video_path (str) - Path to the video. Required.
-        num_backgrounds (int) - Number of returned backgrounds. Optional. Useful for long videos when the background illumination fluctuates over time. Default = 1.
-        save_background (bool) - Saves the background(s) seperately. Optional. Default = False. ** Location of images can be found in path to video.
+    Required Arguments:
+        video_path (str) - Path to the video.
+
+    Optional Arguments:
+        num_backgrounds (int) - Number of returned backgrounds. Default = 1.
+            ** Useful for long videos when the background illumination fluctuates over time.
+        save_background (bool) - Saves the background(s) seperately into external TIFF files. Default = False.
+            ** Location of images can be found in path to video.
+            ** Name of file will be {name of video}_background.tif
 
     Returns:
-        background_array (np.array(num_backgrounds, frame width, frame height)) - Array of calculated background images.
+        background_array (list(num_backgrounds, frame width, frame height)) - Array of calculated background images.
     '''
 
     # Check arguments.
@@ -64,11 +69,11 @@ def calculate_brightest_background(video_path, num_backgrounds = 1, save_backgro
         # Save the background into an external file if requested.
         if save_background:
             if num_backgrounds == 1:
-                brightest_background_path = '{0}_brightest_background.tif'.format(video_path[:-4])
+                brightest_background_path = '{0}_background.tif'.format(video_path[:-4])
                 cv2.imwrite(brightest_background_path, background_array[0].astype(np.uint8))
             else:
                 for i in range(len(background_array)):
-                    brightest_background_path = '{0}_brightest_background{1}.tif'.format(video_path[:-4], i + 1)
+                    brightest_background_path = '{0}_background{1}.tif'.format(video_path[:-4], i + 1)
                     cv2.imwrite(brightest_background_path, background_array[i].astype(np.uint8))
     except:
         # Errors that may occur during the background calculation are handled.
@@ -81,21 +86,24 @@ def calculate_brightest_background(video_path, num_backgrounds = 1, save_backgro
     # Return the calculated background(s) as the brightest set of pixels throughout the video. An array is returned to provide the number of backgrounds requested.
     return background_array
 
-def calculate_next_coords(init_coords, radius, frame, angle = 0, n_angles = 20, range_angles = 2 * np.pi / 3, tail_calculation = True):
+def calculate_next_coords(init_coords, radius, frame, angle = 0, n_angles = 20, range_angles = np.pi * 2.0 / 3.0, tail_calculation = True):
     '''
     Calculates the next coordinate.
 
-    Arguments:
-        init_angle (float) - Initial angle that will be used when drawing a line between the inital coordinates and the next coordinates. Required.
+    Required Arguments:
+        init_angle (float) - Initial angle that will be used when drawing a line between the inital coordinates and the next coordinates.
             ** Units in radians.
-        init_coords (y, x) - Coordinates to use for initializing search of next coordinates. Required.
-        radius (float) - Radius to use for calculating potential next coordinates. Required.
-        frame (frame width, frame height) - Video frame to search for coordinates. Required. Expects a background subtracted frame where objects are brighter than the background.
-        tail_calculation (bool) - Determines which method to use if multiple coordinates are returned. Optional. Default = True. Used
+        init_coords (y, x) - Coordinates to use for initializing search of next coordinates.
+        radius (float) - Radius to use for calculating potential next coordinates.
+        frame (frame width, frame height) - Video frame to search for coordinates.
+            ** Expects a background subtracted frame where objects are brighter than the background.
+
+    Optional Arguments:
+        tail_calculation (bool) - Determines which method to use if multiple coordinates are returned. Default = True.
             ** When calculating the tail, compute the angle between each potential next coordinate and the initial coordinate, and take the next coordinates whose angle is closest to the initial search angle.
             ** When not calculating the tail, compute the length between each potential next coordinate and the initial coordinate and take the first set of coordinates whose length is the shortest.
-        n_angles (int) - Number of angles used when searching for initial points. Optional. Default = 20.
-        range_angles (float) - The entire range of angles with which to look for the next pixel. Optional. Default = 2 / 3 * pi.
+        n_angles (int) - Number of angles used when searching for initial points. Default = 20.
+        range_angles (float) - The entire range of angles with which to look for the next pixel. Default = 2 / 3 * pi.
             ** Units in radians.
 
     Returns:
@@ -129,13 +137,64 @@ def calculate_next_coords(init_coords, radius, frame, angle = 0, n_angles = 20, 
     # Return the first set of coordinates.
     return next_coords[0]
 
-def track_video(video_path, colours, n_tail_points, range_tail_angles, radius_tail_points, radius_eyes, radius_swim_bladder, line_length, eye_threshold, background_path = None, save_background = True, starting_frame = 0, fps = None, n_frames = None, pixel_threshold = 100, frame_change_threshold = 10):
+def track_video(video_path, colours, n_tail_points, dist_tail_points, dist_eyes, dist_swim_bladder, background_path = None, save_background = True, extended_eyes_calculation = False,  eyes_threshold = None, line_length = 0, starting_frame = 0, video_fps = None, video_n_frames = None, pixel_threshold = 100, frame_change_threshold = 10):
+    '''
+    Tracks a video.
+
+    Required Arguments:
+        video_path (str) - Path to the video.
+        colours (list([B, G, R])) - List of colours that will be used for annotating tracking results onto video.
+            ** Each colour is a list consisting of blue, green, and red.
+            ** Values go from 0 - 255.
+            ** The length of the list of colours must be greater than the number of tail points + heading angle + eyes. The heading angle counts as 1. For extended eyes calculation, eyes count as 2, otherwise count as 1.
+        n_tail_points (int) - Number of points to track along the tail.
+        dist_tail_points (int) - The distance between successive tail points, measured in number of pixels.
+        dist_eyes (int) - The distance between the two eyes, measured in number of pixels.
+        dist_swim_bladder (int) - The distance between the eyes and the swim bladder, measured in number of pixels.
+
+    Optional Arguments:
+        background_path (str) - Path to the background. Default = None.
+        save_background (bool) - Boolean to determine whether or not to save the background into an external TIFF file. Default = True.
+            ** Only use if background_path has not been provided.
+        extended_eyes_calculation (bool) - Boolean to determine whether or not the extended eyes calculation method should be used. Default = False.
+        eyes_threshold (int) - Threshold that is used for finding the binary regions that contain the eye coordinates. Default = None.
+            ** Only use if extended_eyes_calculation is set to True, otherwise set to None.
+        line_length (int) - The length of the line used for drawing the heading angle and eye angles. Default = 0.
+            ** When line_length is 0, line_length = dist_eyes.
+        starting_frame (int) - Frame number for which to start in the video. Default = 0.
+        video_fps (float) - FPS of the tracked video. Default = None.
+            ** When video_fps is None, video_fps = fps of video.
+        video_n_frames (int) - Number of frames to track. Default = None.
+            ** When video_n_frames is None, video_n_frames = total number of frames in video.
+        pixel_threshold (int) - Threshold used to determine whether to track the frame. Default = 100.
+            ** Used to compare the pixel_threshold to the maximum pixel value in the frame.
+            ** If the maximum pixel value in the frame is less than pixel_threshold, then skip tracking that frame.
+            ** Useful for when the fish is out of the frame. Thus, frames in which the fish is not in it will not be tracked.
+        frame_change_threshold (int) - Threshold used to compare the absolute difference in pixel values from frame to frame. Default = 10.
+            ** Used to determined whether or not the previous data points should be used or whether new points should be calculated.
+            ** The larger the frame_change_threshold, the less likely it is that new data points are going to be calculated.
+            ** Useful for reducing frame to frame noise in position of coordinates.
+
+    Returns:
+        tracked_video - Saved in the path location given by the video path.
+            ** Saved in a raw video format.
+            ** Points of interest (i.e. tail points, heading angle, and eye coordinates) are annotated on the video.
+        data_file - Saved in the path location given by the video path.
+            ** Saved as a npz file.
+            ** Saved as a dictionary containing arrays of the eye coordinates, heading angle, eye angles, and tail points.
+    '''
 
     # Create or load background image.
     if background_path is None:
         background = calculate_brightest_background(video_path, save_background = save_background)[0].astype(np.uint8)
     else:
         background = cv2.imread(background_path, cv2.IMREAD_GRAYSCALE).astype(np.uint8)
+
+    if line_length == 0:
+        line_length = dist_eyes
+
+    if not extended_eyes_calculation and eyes_threshold is not None:
+        eyes_threshold = None
 
     # Open the video path.
     capture = cv2.VideoCapture(video_path)
@@ -144,18 +203,18 @@ def track_video(video_path, colours, n_tail_points, range_tail_angles, radius_ta
     capture.set(cv2.CAP_PROP_POS_FRAMES, starting_frame)
 
     # Create a path for the video once it is tracked.
-    save_video_path = "{0}_tracked_new.avi".format(video_path[:-4])
+    save_video_path = "{0}_tracked.avi".format(video_path[:-4])
 
     # Get the fps.
-    if fps is None:
-        fps = capture.get(cv2.CAP_PROP_FPS)
+    if video_fps is None:
+        video_fps = capture.get(cv2.CAP_PROP_FPS)
 
     # Get the total number of frames.
-    if n_frames is None:
-        n_frames = int(capture.get(cv2.CAP_PROP_FRAME_COUNT))
+    if video_n_frames is None:
+        video_n_frames = int(capture.get(cv2.CAP_PROP_FRAME_COUNT))
 
     # Create video writer.
-    writer = cv2.VideoWriter(save_video_path, 0, fps, (int(capture.get(cv2.CAP_PROP_FRAME_WIDTH)), int(capture.get(cv2.CAP_PROP_FRAME_HEIGHT))))
+    writer = cv2.VideoWriter(save_video_path, 0, video_fps, (int(capture.get(cv2.CAP_PROP_FRAME_WIDTH)), int(capture.get(cv2.CAP_PROP_FRAME_HEIGHT))))
 
     # Initialize variables for data.
     eye_coord_array = []
@@ -167,8 +226,8 @@ def track_video(video_path, colours, n_tail_points, range_tail_angles, radius_ta
     prev_eye_angle = None
 
     # Iterate through each frame.
-    for n in range(n_frames):
-        print("Tracking video. Processing frame number: {0} / {1}.".format(n + 1, n_frames), end = '\r')
+    for n in range(video_n_frames):
+        print("Tracking video. Processing frame number: {0} / {1}.".format(n + 1, video_n_frames), end = '\r')
         # Load a frame into memory.
         success, original_frame = capture.read()
         # Checks if the frame was loaded successfully.
@@ -205,62 +264,66 @@ def track_video(video_path, colours, n_tail_points, range_tail_angles, radius_ta
                         # Return the coordinate of the brightest pixel.
                         first_eye_coords = [np.where(frame == np.max(frame))[0][0], np.where(frame == np.max(frame))[1][0]]
                         # Calculate the next brightest pixel that lies on the circle drawn around the first eye coordinates and has a radius equal to the distance between the eyes.
-                        second_eye_coords = calculate_next_coords(first_eye_coords, radius_eyes, frame, n_angles = 100, range_angles = 2 * np.pi, tail_calculation = False)
-                        # Calculate the angle between the two eyes.
-                        eye_angle = np.arctan2(second_eye_coords[0] - first_eye_coords[0], second_eye_coords[1] - first_eye_coords[1])
-                        # Check if this is the first frame.
-                        if prev_eye_angle is not None:
-                            # Check if the difference between the current eye angle and previous eye angle is somwehere around pi, meaning the first and second eye coordiantes have reversed. Occasionally, the coordinates of the eyes will switch between one and the other. This method is useful for keeping the positions of the left and right eye the same between frames.
-                            if eye_angle - prev_eye_angle > np.pi / 2 or eye_angle - prev_eye_angle < -np.pi / 2:
-                                if eye_angle - prev_eye_angle < np.pi * 3 / 2 and eye_angle - prev_eye_angle > -np.pi * 3 / 2:
-                                    # Switch the first and second eye coordinates.
-                                    coords = first_eye_coords
-                                    first_eye_coords = second_eye_coords
-                                    second_eye_coords = coords
-                                    # Calculate the new eye angle.
-                                    eye_angle = np.arctan2(second_eye_coords[0] - first_eye_coords[0], second_eye_coords[1] - first_eye_coords[1])
-                        # Apply a threshold to the frame.
-                        thresh = cv2.threshold(frame, eye_threshold, 255, cv2.THRESH_BINARY)[1]
-                        # Find the contours of the binary regions in the thresholded frame.
-                        contours = cv2.findContours(thresh, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)[1]
-                        # Iterate through each contour in the list of contours.
-                        for i in range(len(contours)):
-                            # Check if the first eye coordinate are within the current contour.
-                            if cv2.pointPolygonTest(contours[i], (first_eye_coords[1], first_eye_coords[0]), False) == 1:
-                                # Set the first eye coordinates to the centroid of the binary region and calculate the first eye angle.
-                                M = cv2.moments(contours[i])
-                                first_eye_coords = [int(round(M['m01']/M['m00'])), int(round(M['m10']/M['m00']))]
-                                first_eye_angle = cv2.fitEllipse(contours[i])[2] * np.pi / 180
-                            # Check if the second eye coordinate are within the current contour.
-                            if cv2.pointPolygonTest(contours[i], (second_eye_coords[1], second_eye_coords[0]), False) == 1:
-                                # Set the second eye coordinates to the centroid of the binary region and calculate the first eye angle.
-                                M = cv2.moments(contours[i])
-                                second_eye_coords = [int(round(M['m01']/M['m00'])), int(round(M['m10']/M['m00']))]
-                                second_eye_angle = cv2.fitEllipse(contours[i])[2] * np.pi / 180
+                        second_eye_coords = calculate_next_coords(first_eye_coords, dist_eyes, frame, n_angles = 100, range_angles = 2 * np.pi, tail_calculation = False)
+                        # Check whether to to an additional process to calculate eye angles.
+                        if extended_eyes_calculation:
+                            # Calculate the angle between the two eyes.
+                            eye_angle = np.arctan2(second_eye_coords[0] - first_eye_coords[0], second_eye_coords[1] - first_eye_coords[1])
+                            # Check if this is the first frame.
+                            if prev_eye_angle is not None:
+                                # Check if the difference between the current eye angle and previous eye angle is somwehere around pi, meaning the first and second eye coordiantes have reversed. Occasionally, the coordinates of the eyes will switch between one and the other. This method is useful for keeping the positions of the left and right eye the same between frames.
+                                if eye_angle - prev_eye_angle > np.pi / 2 or eye_angle - prev_eye_angle < -np.pi / 2:
+                                    if eye_angle - prev_eye_angle < np.pi * 3 / 2 and eye_angle - prev_eye_angle > -np.pi * 3 / 2:
+                                        # Switch the first and second eye coordinates.
+                                        coords = first_eye_coords
+                                        first_eye_coords = second_eye_coords
+                                        second_eye_coords = coords
+                                        # Calculate the new eye angle.
+                                        eye_angle = np.arctan2(second_eye_coords[0] - first_eye_coords[0], second_eye_coords[1] - first_eye_coords[1])
+                            # Apply a threshold to the frame.
+                            thresh = cv2.threshold(frame, eye_threshold, 255, cv2.THRESH_BINARY)[1]
+                            # Find the contours of the binary regions in the thresholded frame.
+                            contours = cv2.findContours(thresh, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)[1]
+                            # Iterate through each contour in the list of contours.
+                            for i in range(len(contours)):
+                                # Check if the first eye coordinate are within the current contour.
+                                if cv2.pointPolygonTest(contours[i], (first_eye_coords[1], first_eye_coords[0]), False) == 1:
+                                    # Set the first eye coordinates to the centroid of the binary region and calculate the first eye angle.
+                                    M = cv2.moments(contours[i])
+                                    first_eye_coords = [int(round(M['m01']/M['m00'])), int(round(M['m10']/M['m00']))]
+                                    first_eye_angle = cv2.fitEllipse(contours[i])[2] * np.pi / 180
+                                # Check if the second eye coordinate are within the current contour.
+                                if cv2.pointPolygonTest(contours[i], (second_eye_coords[1], second_eye_coords[0]), False) == 1:
+                                    # Set the second eye coordinates to the centroid of the binary region and calculate the first eye angle.
+                                    M = cv2.moments(contours[i])
+                                    second_eye_coords = [int(round(M['m01']/M['m00'])), int(round(M['m10']/M['m00']))]
+                                    second_eye_angle = cv2.fitEllipse(contours[i])[2] * np.pi / 180
                         # Find the midpoint of the line that connects both eyes.
                         heading_coords = [(first_eye_coords[0] + second_eye_coords[0]) / 2, (first_eye_coords[1] + second_eye_coords[1]) / 2]
                         # Find the swim bladder coordinates by finding the next brightest coordinates that lie on a circle around the heading coordinates with a radius equal to the distance between the eyes and the swim bladder.
-                        swim_bladder_coords = calculate_next_coords(heading_coords, radius_swim_bladder, frame, n_angles = 100, range_angles = 2 * np.pi, tail_calculation = False)
+                        swim_bladder_coords = calculate_next_coords(heading_coords, dist_swim_bladder, frame, n_angles = 100, range_angles = 2 * np.pi, tail_calculation = False)
                         # Find the body coordinates by finding the center of the triangle that connects the eyes and swim bladder.
                         body_coords = [int(round((swim_bladder_coords[0] + first_eye_coords[0] + second_eye_coords[0]) / 3)), int(round((swim_bladder_coords[1] + first_eye_coords[1] + second_eye_coords[1]) / 3))]
                         # Calculate the heading angle as the angle between the body coordinates and the heading coordinates.
                         heading_angle = np.arctan2(heading_coords[0] - body_coords[0], heading_coords[1] - body_coords[1])
-                        # Create an array that acts as a contour for the body and contains the swim bladder coordinates and eye coordinates.
-                        body_contour = np.array([np.array([swim_bladder_coords[1], swim_bladder_coords[0]]), np.array([first_eye_coords[1], first_eye_coords[0]]), np.array([second_eye_coords[1], second_eye_coords[0]])])
-                        # Check to see if the point that is created by drawing a line from the first eye coordinates with a length equal to half of the distance between the eyes is within the body contour. Occasionally, the angle of the eye is flipped to face towards the body instead of away. This is to check whether or not the eye angle should be flipped.
-                        if cv2.pointPolygonTest(body_contour, (first_eye_coords[1] + (radius_eyes / 2 * np.cos(first_eye_angle)), first_eye_coords[0] + (radius_eyes / 2 * np.sin(first_eye_angle))), False) == 1:
-                            # Flip the first eye angle.
-                            if first_eye_angle > 0:
-                                first_eye_angle -= np.pi
-                            else:
-                                first_eye_angle += np.pi
-                        # Check to see if the point that is created by drawing a line from the first eye coordinates with a length equal to half of the distance between the eyes is within the body contour. Occasionally, the angle of the eye is flipped to face towards the body instead of away. This is to check whether or not the eye angle should be flipped.
-                        if cv2.pointPolygonTest(body_contour, (second_eye_coords[1] + (radius_eyes / 2 * np.cos(second_eye_angle)), second_eye_coords[0] + (radius_eyes / 2 * np.sin(second_eye_angle))), False) == 1:
-                            # Flip the second eye angle.
-                            if second_eye_angle > 0:
-                                second_eye_angle -= np.pi
-                            else:
-                                second_eye_angle += np.pi
+                        # Check whether to to an additional process to calculate eye angles.
+                        if extended_eyes_calculation:
+                            # Create an array that acts as a contour for the body and contains the swim bladder coordinates and eye coordinates.
+                            body_contour = np.array([np.array([swim_bladder_coords[1], swim_bladder_coords[0]]), np.array([first_eye_coords[1], first_eye_coords[0]]), np.array([second_eye_coords[1], second_eye_coords[0]])])
+                            # Check to see if the point that is created by drawing a line from the first eye coordinates with a length equal to half of the distance between the eyes is within the body contour. Occasionally, the angle of the eye is flipped to face towards the body instead of away. This is to check whether or not the eye angle should be flipped.
+                            if cv2.pointPolygonTest(body_contour, (first_eye_coords[1] + (dist_eyes / 2 * np.cos(first_eye_angle)), first_eye_coords[0] + (dist_eyes / 2 * np.sin(first_eye_angle))), False) == 1:
+                                # Flip the first eye angle.
+                                if first_eye_angle > 0:
+                                    first_eye_angle -= np.pi
+                                else:
+                                    first_eye_angle += np.pi
+                            # Check to see if the point that is created by drawing a line from the first eye coordinates with a length equal to half of the distance between the eyes is within the body contour. Occasionally, the angle of the eye is flipped to face towards the body instead of away. This is to check whether or not the eye angle should be flipped.
+                            if cv2.pointPolygonTest(body_contour, (second_eye_coords[1] + (dist_eyes / 2 * np.cos(second_eye_angle)), second_eye_coords[0] + (dist_eyes / 2 * np.sin(second_eye_angle))), False) == 1:
+                                # Flip the second eye angle.
+                                if second_eye_angle > 0:
+                                    second_eye_angle -= np.pi
+                                else:
+                                    second_eye_angle += np.pi
                         # Calculate the initial tail angle as the angle opposite to the heading angle.
                         if heading_angle > 0:
                             tail_angle = heading_angle - np.pi
@@ -271,7 +334,7 @@ def track_video(video_path, colours, n_tail_points, range_tail_angles, radius_ta
                             # Check if this is the first tail point.
                             if m == 0:
                                 # Calculate the first tail point using the swim bladder as the first set of coordinates.
-                                tail_point_coords[m] = calculate_next_coords(swim_bladder_coords, radius_tail_points, frame, angle = tail_angle)
+                                tail_point_coords[m] = calculate_next_coords(swim_bladder_coords, dist_tail_points, frame, angle = tail_angle)
                             else:
                                 # Check if this is the second tail point.
                                 if m == 1:
@@ -282,19 +345,28 @@ def track_video(video_path, colours, n_tail_points, range_tail_angles, radius_ta
                                     # Calculate the next tail angle as the angle between the last two tail points.
                                     tail_angle = np.arctan2(tail_point_coords[m - 1][0] - tail_point_coords[m - 2][0], tail_point_coords[m - 1][1] - tail_point_coords[m - 2][1])
                                 # Calculate the next set of tail coordinates.
-                                tail_point_coords[m] = calculate_next_coords(tail_point_coords[m - 1], radius_tail_points, frame, angle = tail_angle)
+                                tail_point_coords[m] = calculate_next_coords(tail_point_coords[m - 1], dist_tail_points, frame, angle = tail_angle)
                         # Set the previous frame to the current frame.
                         prev_frame = frame
-                        # Set the previous eye angle to the current eye angle.
-                        prev_eye_angle = eye_angle
-                    # Draw a circle arround the first eye coordinates.
-                    original_frame = cv2.circle(original_frame, (first_eye_coords[1], first_eye_coords[0]), 1, colours[-3], -1)
-                    # Draw a line representing the first eye angle.
-                    original_frame = cv2.line(original_frame, (first_eye_coords[1], first_eye_coords[0]), (int(round(first_eye_coords[1] + (line_length * np.cos(first_eye_angle)))), int(round(first_eye_coords[0] + (line_length * np.sin(first_eye_angle))))), colours[-3], 1)
-                    # Draw a circle around the second eye coordinates.
-                    original_frame = cv2.circle(original_frame, (second_eye_coords[1], second_eye_coords[0]), 1, colours[-2], - 1)
-                    # Draw a line representing the second eye angle.
-                    original_frame = cv2.line(original_frame, (second_eye_coords[1], second_eye_coords[0]), (int(round(second_eye_coords[1] + (line_length * np.cos(second_eye_angle)))), int(round(second_eye_coords[0] + (line_length * np.sin(second_eye_angle))))), colours[-2], 1)
+                        # Check whether to to an additional process to calculate eye angles.
+                        if extended_eyes_calculation:
+                            # Set the previous eye angle to the current eye angle.
+                            prev_eye_angle = eye_angle
+                    # Check whether to to an additional process to calculate eye angles.
+                    if extended_eyes_calculation:
+                        # Draw a circle arround the first eye coordinates.
+                        original_frame = cv2.circle(original_frame, (first_eye_coords[1], first_eye_coords[0]), 1, colours[-3], -1)
+                        # Draw a line representing the first eye angle.
+                        original_frame = cv2.line(original_frame, (first_eye_coords[1], first_eye_coords[0]), (int(round(first_eye_coords[1] + (line_length * np.cos(first_eye_angle)))), int(round(first_eye_coords[0] + (line_length * np.sin(first_eye_angle))))), colours[-3], 1)
+                        # Draw a circle around the second eye coordinates.
+                        original_frame = cv2.circle(original_frame, (second_eye_coords[1], second_eye_coords[0]), 1, colours[-2], - 1)
+                        # Draw a line representing the second eye angle.
+                        original_frame = cv2.line(original_frame, (second_eye_coords[1], second_eye_coords[0]), (int(round(second_eye_coords[1] + (line_length * np.cos(second_eye_angle)))), int(round(second_eye_coords[0] + (line_length * np.sin(second_eye_angle))))), colours[-2], 1)
+                    else:
+                        # Draw a circle arround the first eye coordinates.
+                        original_frame = cv2.circle(original_frame, (first_eye_coords[1], first_eye_coords[0]), 1, colours[-2], -1)
+                        # Draw a circle arround the second eye coordinates.
+                        original_frame = cv2.circle(original_frame, (second_eye_coords[1], second_eye_coords[0]), 1, colours[-2], - 1)
                     # Iterate through each set of tail points.
                     for m in range(n_tail_points):
                         # Check if this is the first tail point
@@ -340,13 +412,21 @@ def track_video(video_path, colours, n_tail_points, range_tail_angles, radius_ta
     writer.release()
 
     # Create a dictionary that contains all of the results.
-    results = { 'eye_coord_array' : eye_coord_array,
-                'eye_angle_array' : eye_angle_array,
-                'tail_coord_array' : tail_coord_array,
-                'body_coord_array' : body_coord_array,
-                'heading_angle_array' : heading_angle_array,
-                'video_n_frames' : n_frames,
-                'video_fps' : fps }
+    results =   {   'eye_coord_array' : eye_coord_array,
+                    'eye_angle_array' : eye_angle_array,
+                    'tail_coord_array' : tail_coord_array,
+                    'body_coord_array' : body_coord_array,
+                    'heading_angle_array' : heading_angle_array,
+                    'video_path' : video_path,
+                    'video_n_frames' : video_n_frames,
+                    'video_fps' : video_fps,
+                    'dist_tail_points' : dist_tail_points,
+                    'dist_eyes' : dist_eyes,
+                    'dist_swim_bladder' : dist_swim_bladder,
+                    'eyes_threshold' : eyes_threshold,
+                    'pixel_threshold' : pixel_threshold,
+                    'frame_change_threshold' : frame_change_threshold
+                }
 
     # Create a path that will contain all of the results from tracking.
     data_path = "{0}_results.npz".format(video_path[:-4])
