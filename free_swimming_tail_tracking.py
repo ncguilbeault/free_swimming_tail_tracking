@@ -2,11 +2,19 @@
 import numpy as np
 import cv2
 
-def calculate_brightest_background(video_path, num_backgrounds = 1, save_background = False):
+def calculate_background(video_path, num_backgrounds = 1, save_background = False, dark_invert = False):
 
     '''
-    Calculate the background of a video as the brightest pixel values throughout the entire video.
-    ** Assumes that objects in the foreground are always darker than the background.
+    Function that calculates the background of a video.
+
+    Steps:
+        A path to the video is provided.
+        OpenCV is used to open the video.
+        The first frame is read into memory.
+        The first frame is copied as the background.
+        Each frame is subsequently iterated through and compared to the current background.
+        Pixels in the frame that are either brighter (default) or darker than the background are used to update the existing background.
+        The final output is an array of background images that are equally spaced throughout the video.
 
     Required Arguments:
         video_path (str) - Path to the video.
@@ -17,6 +25,9 @@ def calculate_brightest_background(video_path, num_backgrounds = 1, save_backgro
         save_background (bool) - Saves the background(s) seperately into external TIFF files. Default = False.
             ** Location of images can be found in path to video.
             ** Name of file will be {name of video}_background.tif
+        background_invert (bool) - Inverts the background calculation. Default = False.
+            ** When False, calculates the brightest pixel values as the background image. This assumes the foreground is darker than the background.
+            ** When True, calculates the darkest pixel values as the background. This assumes the foreground is brighter than the background.
 
     Returns:
         background_array (list(num_backgrounds, frame width, frame height)) - Array of calculated background images.
@@ -30,7 +41,10 @@ def calculate_brightest_background(video_path, num_backgrounds = 1, save_backgro
         print('Error: num_backgrounds must be formatted as an integer.')
         return
     if not isinstance(save_background, bool):
-        print('Error: save_background must be formatted as a boolean.')
+        print('Error: save_background must be formatted as a boolean (True/False).')
+        return
+    if not isinstance(dark_invert, bool):
+        print('Error: background_invert must be formatted as a boolean (True/False).')
         return
 
     try:
@@ -55,10 +69,16 @@ def calculate_brightest_background(video_path, num_backgrounds = 1, save_backgro
                 # Copy frame into background if this is the first frame.
                 if frame_num == 0:
                     background = frame.copy().astype(np.float32)
-                # Create a mask where the background is compared to the frame in the loop and used to update the background where the frame is.
-                mask = np.less(background, frame)
-                # Update the background image where all of the pixels in the new frame are brighter than the background image.
-                background[mask] = frame[mask]
+                if dark_invert:
+                    # Create a mask where the background is compared to the frame in the loop and used to update the background where the frame is.
+                    mask = np.greater(background, frame)
+                    # Update the background image where all of the pixels in the new frame are darker than the background image.
+                    background[mask] = frame[mask]
+                else:
+                    # Create a mask where the background is compared to the frame in the loop and used to update the background where the frame is.
+                    mask = np.less(background, frame)
+                    # Update the background image where all of the pixels in the new frame are brighter than the background image.
+                    background[mask] = frame[mask]
                 # Compare the current number of frames iterated through to the number of backgrounds requested and add the background to the background array.
                 if frame_num > 0 and frame_num % background_chunk_index == 0:
                     background_array.append(background)
@@ -69,12 +89,12 @@ def calculate_brightest_background(video_path, num_backgrounds = 1, save_backgro
         # Save the background into an external file if requested.
         if save_background:
             if num_backgrounds == 1:
-                brightest_background_path = '{0}_background.tif'.format(video_path[:-4])
-                cv2.imwrite(brightest_background_path, background_array[0].astype(np.uint8))
+                background_path = '{0}_background.tif'.format(video_path[:-4])
+                cv2.imwrite(background_path, background_array[0].astype(np.uint8))
             else:
                 for i in range(len(background_array)):
-                    brightest_background_path = '{0}_background{1}.tif'.format(video_path[:-4], i + 1)
-                    cv2.imwrite(brightest_background_path, background_array[i].astype(np.uint8))
+                    background_path = '{0}_background{1}.tif'.format(video_path[:-4], i + 1)
+                    cv2.imwrite(background_path, background_array[i].astype(np.uint8))
     except:
         # Errors that may occur during the background calculation are handled.
         print('')
@@ -88,13 +108,22 @@ def calculate_brightest_background(video_path, num_backgrounds = 1, save_backgro
 
 def calculate_next_coords(init_coords, radius, frame, angle = 0, n_angles = 20, range_angles = np.pi * 2.0 / 3.0, tail_calculation = True):
     '''
-    Calculates the next coordinate.
+    Function that calculates the next set of coordinates provided an initial set of coordinates, radius, and frame.
+
+    Steps:
+        Calculates a list of angles provided by the number of angles (n_angles) and range of angles (range_angles).
+        Calculates a list of all potential coordinates in the image that lie on the circumference of a circle or arc given by the list of angles, the radius, and the initial coordinates.
+        Removes unnecessary duplicated coordinates from the list.
+        Computes the brightest coordinates out of the list of potential coordinates.
+        Check if more than one set of coordinates had the same, brightest values.
+        When the tail is being calculated, use the coordinate that is most stimilar to the previous angle.
+        When the tail is not being calculated, use the first set of coordinates that have the minimum distance between the next coordinates and the initial coordinates.
 
     Required Arguments:
         init_angle (float) - Initial angle that will be used when drawing a line between the inital coordinates and the next coordinates.
             ** Units in radians.
         init_coords (y, x) - Coordinates to use for initializing search of next coordinates.
-        radius (float) - Radius to use for calculating potential next coordinates.
+        radius (float) - Radius to use for calculating the distance between the initial coordinates and potential next coordinates.
         frame (frame width, frame height) - Video frame to search for coordinates.
             ** Expects a background subtracted frame where objects are brighter than the background.
 
