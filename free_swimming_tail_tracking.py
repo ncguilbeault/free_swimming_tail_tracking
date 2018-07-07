@@ -215,7 +215,7 @@ def track_video(video_path, colours, n_tail_points, dist_tail_points, dist_eyes,
 
     # Create or load background image.
     if background_path is None:
-        background = calculate_brightest_background(video_path, save_background = save_background)[0].astype(np.uint8)
+        background = calculate_background(video_path, save_background = save_background)[0].astype(np.uint8)
     else:
         background = cv2.imread(background_path, cv2.IMREAD_GRAYSCALE).astype(np.uint8)
 
@@ -436,6 +436,7 @@ def track_video(video_path, colours, n_tail_points, dist_tail_points, dist_eyes,
             # Write the new frame that contains the annotated frame with tracked points to a new video.
             writer.write(original_frame)
 
+    print("Tracking video. Processing frame number: {0} / {1}.".format(n + 1, video_n_frames))
     # Unload the video and writer from memory.
     capture.release()
     writer.release()
