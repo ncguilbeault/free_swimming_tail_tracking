@@ -21,7 +21,7 @@ dist_tail_points = 5
 dist_eyes = 4
 # Set the distance between the eyes and the swim bladder.
 dist_swim_bladder = 12
-
+# Set the threshold at which to determine whether or not to process the frame (there must be a pixel in the frame that is greater than the threshold in order for the algorithm to process the frame)
 pixel_threshold = 80
 
 free_swimming_tail_tracking.track_video(video_path, colours, n_tail_points, dist_tail_points, dist_eyes, dist_swim_bladder, pixel_threshold = 80, background_path = background_path, extended_eyes_calculation = False)
