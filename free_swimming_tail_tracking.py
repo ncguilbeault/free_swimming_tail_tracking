@@ -375,7 +375,7 @@ def preview_tracking_results(video_path, colours, n_tail_points, dist_tail_point
 
     # Unload the video from memory.
     capture.release()
-    print('Preview track video complete.')
+    print('Previewing tracking results.')
 
 def track_video(video_path, colours, n_tail_points, dist_tail_points, dist_eyes, dist_swim_bladder, save_path = None, background_path = None, save_background = True, extended_eyes_calculation = False,  eyes_threshold = None, line_length = 0, starting_frame = 0, video_fps = None, video_n_frames = None, pixel_threshold = 100, frame_change_threshold = 10):
     '''
