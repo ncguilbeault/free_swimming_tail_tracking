@@ -2,6 +2,34 @@
 import numpy as np
 import cv2
 import os
+import multiprocessing as mp
+import time
+
+def subtract_background_from_frames(frame_array, background):
+    frame_array = [[success, cv2.absdiff(frame, background)] if success else [success, frame] for success, frame in frame_array]
+    return frame_array
+
+def apply_median_blur_to_frames(frame_array):
+    frame_array = [[success, cv2.medianBlur(frame, 3)] if success else [success, frame] for success, frame in frame_array]
+    return frame_array
+
+def get_total_frame_number_from_video(video_path):
+    capture = cv2.VideoCapture(video_path)
+    total_frame_number = int(capture.get(cv2.CAP_PROP_FRAME_COUNT))
+    capture.release()
+    return total_frame_number
+
+def get_fps_from_video(video_path):
+    capture = cv2.VideoCapture(video_path)
+    video_fps = capture.get(cv2.CAP_PROP_FPS)
+    capture.release()
+    return video_fps
+
+def get_frame_size_from_video(video_path):
+    capture = cv2.VideoCapture(video_path)
+    frame_size = (int(capture.get(cv2.CAP_PROP_FRAME_WIDTH)), int(capture.get(cv2.CAP_PROP_FRAME_HEIGHT)))
+    capture.release()
+    return frame_size
 
 def calculate_background(video_path, save_path = None, num_backgrounds = 1, save_background = False, dark_invert = False):
 
@@ -171,7 +199,30 @@ def calculate_next_coords(init_coords, radius, frame, angle = 0, n_angles = 20, 
             # Take the set of coordinates whose length between the next coordinates and previous coordinates matches the minimum length.
             next_coords = [next_coords[i] for i in range(len(next_coords)) if np.hypot(next_coords[i][0] - init_coords[0], next_coords[i][1] - init_coords[1]) == min_value]
     # Return the first set of coordinates.
-    return next_coords[0]
+    return np.array(next_coords[0])
+
+def load_frames_into_memory(video_path, starting_frame = 0, frame_batch_size = 50, convert_gray_to_color = True):
+
+        # Open the video path.
+        capture = cv2.VideoCapture(video_path)
+
+        # Get the total number of frames in the video.
+        video_n_frames = int(capture.get(cv2.CAP_PROP_FRAME_COUNT))
+
+        # Set the frame position to start.
+        capture.set(cv2.CAP_PROP_POS_FRAMES, starting_frame)
+
+        frame_array = []
+        # Load frames into memory.
+        for i in range(frame_batch_size):
+            success, original_frame = capture.read()
+            if success:
+                frame = cv2.cvtColor(original_frame, cv2.COLOR_BGR2GRAY).astype(np.uint8)
+            frame_array.append([success, frame])
+
+        capture.release()
+
+        return frame_array
 
 def preview_tracking_results(video_path, colours, n_tail_points, dist_tail_points, dist_eyes, dist_swim_bladder, save_path = None, background_path = None, save_background = False, extended_eyes_calculation = False, eyes_threshold = None, line_length = 0, frame_number = 0, pixel_threshold = 100):
     '''
@@ -274,7 +325,7 @@ def preview_tracking_results(video_path, colours, n_tail_points, dist_tail_point
                     # Calculate the angle between the two eyes.
                     eye_angle = np.arctan2(second_eye_coords[0] - first_eye_coords[0], second_eye_coords[1] - first_eye_coords[1])
                     # Apply a threshold to the frame.
-                    thresh = cv2.threshold(frame, eye_threshold, 255, cv2.THRESH_BINARY)[1]
+                    thresh = cv2.threshold(frame, eyes_threshold, 255, cv2.THRESH_BINARY)[1]
                     # Find the contours of the binary regions in the thresholded frame.
                     contours = cv2.findContours(thresh, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)[1]
                     # Iterate through each contour in the list of contours.
@@ -377,7 +428,221 @@ def preview_tracking_results(video_path, colours, n_tail_points, dist_tail_point
     capture.release()
     print('Previewing tracking results.')
 
-def track_video(video_path, colours, n_tail_points, dist_tail_points, dist_eyes, dist_swim_bladder, save_path = None, background_path = None, save_background = True, extended_eyes_calculation = False,  eyes_threshold = None, line_length = 0, starting_frame = 0, video_fps = None, video_n_frames = None, pixel_threshold = 100, frame_change_threshold = 10):
+def track_tail_in_frame(tracking_params):
+
+    frame, success, n_tail_points, dist_tail_points, dist_eyes, dist_swim_bladder, pixel_threshold = tracking_params
+    first_eye_coords = [np.nan, np.nan]
+    second_eye_coords = [np.nan, np.nan]
+    heading_coords = [np.nan, np.nan]
+    body_coords = [np.nan, np.nan]
+    heading_angle = np.nan
+    tail_point_coords = [[np.nan, np.nan] for m in range(n_tail_points + 1)]
+    if np.max(frame) > pixel_threshold:
+        # Return the coordinate of the brightest pixel.
+        first_eye_coords = [np.where(frame == np.max(frame))[0][0], np.where(frame == np.max(frame))[1][0]]
+        # Calculate the next brightest pixel that lies on the circle drawn around the first eye coordinates and has a radius equal to the distance between the eyes.
+        second_eye_coords = calculate_next_coords(first_eye_coords, dist_eyes, frame, n_angles = 100, range_angles = 2 * np.pi, tail_calculation = False)
+        # Find the midpoint of the line that connects both eyes.
+        heading_coords = [(first_eye_coords[0] + second_eye_coords[0]) / 2, (first_eye_coords[1] + second_eye_coords[1]) / 2]
+        # Find the swim bladder coordinates by finding the next brightest coordinates that lie on a circle around the heading coordinates with a radius equal to the distance between the eyes and the swim bladder.
+        tail_point_coords[0] = calculate_next_coords(heading_coords, dist_swim_bladder, frame, n_angles = 100, range_angles = 2 * np.pi, tail_calculation = False)
+        # Find the body coordinates by finding the center of the triangle that connects the eyes and swim bladder.
+        body_coords = [int(round((tail_point_coords[0][0] + first_eye_coords[0] + second_eye_coords[0]) / 3)), int(round((tail_point_coords[0][1] + first_eye_coords[1] + second_eye_coords[1]) / 3))]
+        # Calculate the heading angle as the angle between the body coordinates and the heading coordinates.
+        heading_angle = np.arctan2(heading_coords[0] - body_coords[0], heading_coords[1] - body_coords[1])
+        # Iterate through the number of tail points.
+        for m in range(1, n_tail_points + 1):
+            # Check if this is the first tail point.
+            if m == 1:
+                # Calculate the initial tail angle as the angle opposite to the heading angle.
+                if heading_angle > 0:
+                    tail_angle = heading_angle - np.pi
+                else:
+                    tail_angle = heading_angle + np.pi
+            else:
+                # Calculate the next tail angle as the angle between the last two tail points.
+                tail_angle = np.arctan2(tail_point_coords[m - 1][0] - tail_point_coords[m - 2][0], tail_point_coords[m - 1][1] - tail_point_coords[m - 2][1])
+            # Calculate the next set of tail coordinates.
+            tail_point_coords[m] = calculate_next_coords(tail_point_coords[m - 1], dist_tail_points, frame, angle = tail_angle)
+
+        return np.array([np.array(first_eye_coords), np.array(second_eye_coords), np.array(heading_coords), np.array(body_coords), heading_angle, np.array(tail_point_coords)])
+
+def track_tail_in_video_with_multiprocessing(video_path, colours, n_tail_points, dist_tail_points, dist_eyes, dist_swim_bladder, init_frame_batch_size = 50, init_starting_frame = 0, save_path = None, background_path = None, save_background = True, line_length = 0, video_fps = None, n_frames = None, pixel_threshold = 100, frame_change_threshold = 10):
+
+    t0 = time.time()
+
+    # Create or load background image.
+    if background_path is None:
+        background = calculate_background(video_path, save_path, save_background = save_background)[0].astype(np.uint8)
+    else:
+        background = cv2.imread(background_path, cv2.IMREAD_GRAYSCALE).astype(np.uint8)
+
+    video_n_frames = get_total_frame_number_from_video(video_path)
+    starting_frame = init_starting_frame
+    frame_batch_size = init_frame_batch_size
+
+    # Get the total number of frames.
+    if n_frames is None:
+        n_frames = video_n_frames
+
+    if n_frames > video_n_frames:
+        print('The number of frames requested to track exceeds the total number of frames in the video.')
+        n_frames = video_n_frames
+
+    if starting_frame >= video_n_frames:
+        print('Starting frame number provided exceeds the total number of frames in the video. Setting the starting frame number to 0.')
+        starting_frame = 0
+        n_frames = video_n_frames
+
+    if starting_frame + n_frames > video_n_frames:
+        print('The number of frames requested to track plus the number of initial frames to offset exceeds the total number of frames in the video. Keeping the initial frames to offset and tracking the remaining frames.')
+        n_frames = video_n_frames - starting_frame
+
+    batch_iterations = int((video_n_frames - starting_frame) / frame_batch_size)
+    if (video_n_frames - starting_frame) % frame_batch_size != 0:
+        batch_iterations += 1
+
+    # Initialize variables for data.
+    eye_coord_array = np.array([])
+    heading_coord_array = np.array([])
+    body_coord_array = np.array([])
+    heading_angle_array = np.array([])
+    tail_coord_array = np.array([])
+
+    for i in range(batch_iterations):
+        print('Tracking video. Processing frame numbers: {0} - {1} / {2}.'.format(starting_frame, starting_frame + frame_batch_size, video_n_frames), end = '\r')
+        frame_array = load_frames_into_memory(video_path, starting_frame = starting_frame, frame_batch_size = frame_batch_size)
+        frame_array = subtract_background_from_frames(frame_array, background)
+        frame_array = apply_median_blur_to_frames(frame_array)
+        tracking_params = [[frame, success, n_tail_points, dist_tail_points, dist_eyes, dist_swim_bladder, pixel_threshold] for success, frame in frame_array]
+        pool = mp.Pool(mp.cpu_count())
+        tracking_results = np.array(pool.map(track_tail_in_frame, tracking_params))
+        pool.close()
+        pool.join()
+
+        eye_coord_array = np.append(eye_coord_array, np.array([tracking_results[:,0], tracking_results[:,1]]))
+        heading_coord_array = np.append(heading_coord_array, tracking_results[:,2])
+        body_coord_array = np.append(body_coord_array, tracking_results[:,3])
+        heading_angle_array = np.append(heading_angle_array, tracking_results[:,4])
+        tail_coord_array = np.append(tail_coord_array, tracking_results[:,5])
+
+        if starting_frame + frame_batch_size != video_n_frames:
+            starting_frame += frame_batch_size
+            if starting_frame + frame_batch_size > video_n_frames:
+                frame_batch_size = video_n_frames - starting_frame
+
+    print('Tracking video. Processing frame numbers: {0} - {1} / {2}.'.format(starting_frame, starting_frame + frame_batch_size, video_n_frames))
+
+    eye_coord_array = eye_coord_array.reshape((2, video_n_frames))
+    starting_frame = init_starting_frame
+    frame_batch_size = init_frame_batch_size
+
+    results =   {   'eye_coord_array' : eye_coord_array,
+                    'heading_coord_array' : heading_coord_array,
+                    'tail_coord_array' : tail_coord_array,
+                    'body_coord_array' : body_coord_array,
+                    'heading_angle_array' : heading_angle_array,
+                    'video_path' : video_path,
+                    'video_n_frames' : video_n_frames,
+                    'video_fps' : video_fps,
+                    'dist_tail_points' : dist_tail_points,
+                    'dist_eyes' : dist_eyes,
+                    'dist_swim_bladder' : dist_swim_bladder,
+                    'pixel_threshold' : pixel_threshold,
+                    'frame_change_threshold' : frame_change_threshold
+                }
+
+    print('Total processing time: {0} seconds.'.format(time.time() - t0))
+
+    return results
+
+def track_tail_in_video_without_multiprocessing(video_path, colours, n_tail_points, dist_tail_points, dist_eyes, dist_swim_bladder, init_frame_batch_size = 50, init_starting_frame = 0, save_path = None, background_path = None, save_background = True, line_length = 0, video_fps = None, n_frames = None, pixel_threshold = 100, frame_change_threshold = 10):
+
+    t0 = time.time()
+
+    # Create or load background image.
+    if background_path is None:
+        background = calculate_background(video_path, save_path, save_background = save_background)[0].astype(np.uint8)
+    else:
+        background = cv2.imread(background_path, cv2.IMREAD_GRAYSCALE).astype(np.uint8)
+
+    video_n_frames = get_total_frame_number_from_video(video_path)
+    starting_frame = init_starting_frame
+    frame_batch_size = init_frame_batch_size
+
+    # Get the total number of frames.
+    if n_frames is None:
+        n_frames = video_n_frames
+
+    if n_frames > video_n_frames:
+        print('The number of frames requested to track exceeds the total number of frames in the video.')
+        n_frames = video_n_frames
+
+    if starting_frame >= video_n_frames:
+        print('Starting frame number provided exceeds the total number of frames in the video. Setting the starting frame number to 0.')
+        starting_frame = 0
+        n_frames = video_n_frames
+
+    if starting_frame + n_frames > video_n_frames:
+        print('The number of frames requested to track plus the number of initial frames to offset exceeds the total number of frames in the video. Keeping the initial frames to offset and tracking the remaining frames.')
+        n_frames = video_n_frames - starting_frame
+
+    batch_iterations = int((video_n_frames - starting_frame) / frame_batch_size)
+    if (video_n_frames - starting_frame) % frame_batch_size != 0:
+        batch_iterations += 1
+
+    # Initialize variables for data.
+    eye_coord_array = np.array([])
+    heading_coord_array = np.array([])
+    body_coord_array = np.array([])
+    heading_angle_array = np.array([])
+    tail_coord_array = np.array([])
+
+    for i in range(batch_iterations):
+        print('Tracking video. Processing frame numbers: {0} - {1} / {2}.'.format(starting_frame, starting_frame + frame_batch_size, video_n_frames), end = '\r')
+        frame_array = load_frames_into_memory(video_path, starting_frame = starting_frame, frame_batch_size = frame_batch_size)
+        frame_array = subtract_background_from_frames(frame_array, background)
+        frame_array = apply_median_blur_to_frames(frame_array)
+        tracking_params = [[frame, success, n_tail_points, dist_tail_points, dist_eyes, dist_swim_bladder, pixel_threshold] for success, frame in frame_array]
+        tracking_results = np.array([track_tail_in_frame(i) for i in tracking_params])
+
+        eye_coord_array = np.append(eye_coord_array, np.array([tracking_results[:,0], tracking_results[:,1]]))
+        heading_coord_array = np.append(heading_coord_array, tracking_results[:,2])
+        body_coord_array = np.append(body_coord_array, tracking_results[:,3])
+        heading_angle_array = np.append(heading_angle_array, tracking_results[:,4])
+        tail_coord_array = np.append(tail_coord_array, tracking_results[:,5])
+
+        if starting_frame + frame_batch_size != video_n_frames:
+            starting_frame += frame_batch_size
+            if starting_frame + frame_batch_size > video_n_frames:
+                frame_batch_size = video_n_frames - starting_frame
+
+    print('Tracking video. Processing frame numbers: {0} - {1} / {2}.'.format(starting_frame, starting_frame + frame_batch_size, video_n_frames))
+
+    eye_coord_array = eye_coord_array.reshape((2, video_n_frames))
+    starting_frame = init_starting_frame
+    frame_batch_size = init_frame_batch_size
+
+    results =   {   'eye_coord_array' : eye_coord_array,
+                    'heading_coord_array' : heading_coord_array,
+                    'tail_coord_array' : tail_coord_array,
+                    'body_coord_array' : body_coord_array,
+                    'heading_angle_array' : heading_angle_array,
+                    'video_path' : video_path,
+                    'video_n_frames' : video_n_frames,
+                    'video_fps' : video_fps,
+                    'dist_tail_points' : dist_tail_points,
+                    'dist_eyes' : dist_eyes,
+                    'dist_swim_bladder' : dist_swim_bladder,
+                    'pixel_threshold' : pixel_threshold,
+                    'frame_change_threshold' : frame_change_threshold
+                }
+
+    print('Total processing time: {0} seconds.'.format(time.time() - t0))
+
+    return results
+
+def track_video(video_path, colours, n_tail_points, dist_tail_points, dist_eyes, dist_swim_bladder, n_frames = None, starting_frame = 0, save_path = None, background_path = None, save_background = True, extended_eyes_calculation = False,  eyes_threshold = None, line_length = 0, video_fps = None, pixel_threshold = 100, frame_change_threshold = 10):
     '''
     Tracks a video.
 
@@ -426,6 +691,8 @@ def track_video(video_path, colours, n_tail_points, dist_tail_points, dist_eyes,
             ** Saved as a dictionary containing arrays of the eye coordinates, heading angle, eye angles, and tail points.
     '''
 
+    t0 = time.time()
+
     # Create or load background image.
     if background_path is None:
         background = calculate_background(video_path, save_path, save_background = save_background)[0].astype(np.uint8)
@@ -441,16 +708,31 @@ def track_video(video_path, colours, n_tail_points, dist_tail_points, dist_eyes,
     if save_path == None:
         save_path = os.path.dirname(video_path)
 
-    # Open the video path.
-    capture = cv2.VideoCapture(video_path)
+    video_n_frames = get_total_frame_number_from_video(video_path)
+
+    # Get the fps.
+    if video_fps is None:
+        video_fps = get_fps_from_video(video_path)
 
     # Get the total number of frames.
-    if video_n_frames is None:
-        video_n_frames = int(capture.get(cv2.CAP_PROP_FRAME_COUNT))
+    if n_frames is None:
+        n_frames = video_n_frames
+
+    if n_frames > video_n_frames:
+        print('The number of frames requested to track exceeds the total number of frames in the video.')
+        n_frames = video_n_frames
 
     if starting_frame >= video_n_frames:
         print('Starting frame number provided exceeds the total number of frames in the video. Setting the starting frame number to 0.')
         starting_frame = 0
+        n_frames = video_n_frames
+
+    if starting_frame + n_frames > video_n_frames:
+        print('The number of frames requested to track plus the number of initial frames to offset exceeds the total number of frames in the video. Keeping the initial frames to offset and tracking the remaining frames.')
+        n_frames = video_n_frames - starting_frame
+
+    # Open the video path.
+    capture = cv2.VideoCapture(video_path)
 
     # Set the frame position to start.
     capture.set(cv2.CAP_PROP_POS_FRAMES, starting_frame)
@@ -458,12 +740,8 @@ def track_video(video_path, colours, n_tail_points, dist_tail_points, dist_eyes,
     # Create a path for the video once it is tracked.
     save_video_path = "{0}\\{1}_tracked.avi".format(save_path, os.path.basename(video_path)[:-4])
 
-    # Get the fps.
-    if video_fps is None:
-        video_fps = capture.get(cv2.CAP_PROP_FPS)
-
     # Create video writer.
-    writer = cv2.VideoWriter(save_video_path, 0, video_fps, (int(capture.get(cv2.CAP_PROP_FRAME_WIDTH)), int(capture.get(cv2.CAP_PROP_FRAME_HEIGHT))))
+    writer = cv2.VideoWriter(save_video_path, 0, video_fps, frame_size)
 
     # Initialize variables for data.
     eye_coord_array = []
@@ -475,8 +753,8 @@ def track_video(video_path, colours, n_tail_points, dist_tail_points, dist_eyes,
     prev_eye_angle = None
 
     # Iterate through each frame.
-    for n in range(video_n_frames):
-        print("Tracking video. Processing frame number: {0} / {1}.".format(n + 1, video_n_frames), end = '\r')
+    for n in range(n_frames):
+        print('Tracking video. Processing frame number: {0} / {1}.'.format(n + 1, n_frames), end = '\r')
         # Load a frame into memory.
         success, original_frame = capture.read()
         # Checks if the frame was loaded successfully.
@@ -656,7 +934,7 @@ def track_video(video_path, colours, n_tail_points, dist_tail_points, dist_eyes,
             # Write the new frame that contains the annotated frame with tracked points to a new video.
             writer.write(original_frame)
 
-    print("Tracking video. Processing frame number: {0} / {1}.".format(n + 1, video_n_frames))
+    print('Tracking video. Processing frame number: {0} / {1}.'.format(n + 1, n_frames))
     # Unload the video and writer from memory.
     capture.release()
     writer.release()
@@ -683,3 +961,5 @@ def track_video(video_path, colours, n_tail_points, dist_tail_points, dist_eyes,
 
     # Save the results to a npz file.
     np.savez(data_path, data = results)
+
+    print('Total processing time: {0} seconds.'.format(time.time() - t0))
