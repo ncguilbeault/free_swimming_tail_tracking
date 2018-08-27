@@ -2,6 +2,7 @@
 import numpy as np
 import cv2
 import os
+import sys
 import multiprocessing as mp
 import time
 
@@ -14,19 +15,22 @@ def apply_median_blur_to_frames(frame_array):
     return frame_array
 
 def get_total_frame_number_from_video(video_path):
-    capture = cv2.VideoCapture(video_path)
+    with suppress_stdout():
+        capture = cv2.VideoCapture(video_path)
     total_frame_number = int(capture.get(cv2.CAP_PROP_FRAME_COUNT))
     capture.release()
     return total_frame_number
 
 def get_fps_from_video(video_path):
-    capture = cv2.VideoCapture(video_path)
+    with suppress_stdout():
+        capture = cv2.VideoCapture(video_path)
     video_fps = capture.get(cv2.CAP_PROP_FPS)
     capture.release()
     return video_fps
 
 def get_frame_size_from_video(video_path):
-    capture = cv2.VideoCapture(video_path)
+    with suppress_stdout():
+        capture = cv2.VideoCapture(video_path)
     frame_size = (int(capture.get(cv2.CAP_PROP_FRAME_WIDTH)), int(capture.get(cv2.CAP_PROP_FRAME_HEIGHT)))
     capture.release()
     return frame_size
@@ -77,8 +81,9 @@ def calculate_background(video_path, save_path = None, num_backgrounds = 1, save
         return
 
     try:
-        # Load the video.
-        capture = cv2.VideoCapture(video_path)
+        with suppress_stdout():
+            # Load the video.
+            capture = cv2.VideoCapture(video_path)
         # Initialize background array.
         background_array = []
         # Retrieve total number of frames in video.
@@ -203,26 +208,27 @@ def calculate_next_coords(init_coords, radius, frame, angle = 0, n_angles = 20, 
 
 def load_frames_into_memory(video_path, starting_frame = 0, frame_batch_size = 50, convert_gray_to_color = True):
 
+    with suppress_stdout():
         # Open the video path.
         capture = cv2.VideoCapture(video_path)
 
-        # Get the total number of frames in the video.
-        video_n_frames = int(capture.get(cv2.CAP_PROP_FRAME_COUNT))
+    # Get the total number of frames in the video.
+    video_n_frames = int(capture.get(cv2.CAP_PROP_FRAME_COUNT))
 
-        # Set the frame position to start.
-        capture.set(cv2.CAP_PROP_POS_FRAMES, starting_frame)
+    # Set the frame position to start.
+    capture.set(cv2.CAP_PROP_POS_FRAMES, starting_frame)
 
-        frame_array = []
-        # Load frames into memory.
-        for i in range(frame_batch_size):
-            success, original_frame = capture.read()
-            if success:
-                frame = cv2.cvtColor(original_frame, cv2.COLOR_BGR2GRAY).astype(np.uint8)
-            frame_array.append([success, frame])
+    frame_array = []
+    # Load frames into memory.
+    for i in range(frame_batch_size):
+        success, original_frame = capture.read()
+        if success:
+            frame = cv2.cvtColor(original_frame, cv2.COLOR_BGR2GRAY).astype(np.uint8)
+        frame_array.append([success, frame])
 
-        capture.release()
+    capture.release()
 
-        return frame_array
+    return frame_array
 
 def preview_tracking_results(video_path, colours, n_tail_points, dist_tail_points, dist_eyes, dist_swim_bladder, save_path = None, background_path = None, save_background = False, extended_eyes_calculation = False, eyes_threshold = None, line_length = 0, frame_number = 0, pixel_threshold = 100):
     '''
@@ -426,7 +432,6 @@ def preview_tracking_results(video_path, colours, n_tail_points, dist_tail_point
 
     # Unload the video from memory.
     capture.release()
-    print('Previewing tracking results.')
 
 def track_tail_in_frame(tracking_params):
 
@@ -465,7 +470,7 @@ def track_tail_in_frame(tracking_params):
             # Calculate the next set of tail coordinates.
             tail_point_coords[m] = calculate_next_coords(tail_point_coords[m - 1], dist_tail_points, frame, angle = tail_angle)
 
-        return np.array([np.array(first_eye_coords), np.array(second_eye_coords), np.array(heading_coords), np.array(body_coords), heading_angle, np.array(tail_point_coords)])
+    return np.array([np.array(first_eye_coords), np.array(second_eye_coords), np.array(heading_coords), np.array(body_coords), heading_angle, np.array(tail_point_coords)])
 
 def track_tail_in_video_with_multiprocessing(video_path, colours, n_tail_points, dist_tail_points, dist_eyes, dist_swim_bladder, init_frame_batch_size = 50, init_starting_frame = 0, save_path = None, background_path = None, save_background = True, line_length = 0, video_fps = None, n_frames = None, pixel_threshold = 100, frame_change_threshold = 10):
 
@@ -709,6 +714,7 @@ def track_video(video_path, colours, n_tail_points, dist_tail_points, dist_eyes,
         save_path = os.path.dirname(video_path)
 
     video_n_frames = get_total_frame_number_from_video(video_path)
+    frame_size = get_frame_size_from_video(video_path)
 
     # Get the fps.
     if video_fps is None:
