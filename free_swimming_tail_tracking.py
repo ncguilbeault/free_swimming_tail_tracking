@@ -15,22 +15,19 @@ def apply_median_blur_to_frames(frame_array):
     return frame_array
 
 def get_total_frame_number_from_video(video_path):
-    with suppress_stdout():
-        capture = cv2.VideoCapture(video_path)
+    capture = cv2.VideoCapture(video_path)
     total_frame_number = int(capture.get(cv2.CAP_PROP_FRAME_COUNT))
     capture.release()
     return total_frame_number
 
 def get_fps_from_video(video_path):
-    with suppress_stdout():
-        capture = cv2.VideoCapture(video_path)
+    capture = cv2.VideoCapture(video_path)
     video_fps = capture.get(cv2.CAP_PROP_FPS)
     capture.release()
     return video_fps
 
 def get_frame_size_from_video(video_path):
-    with suppress_stdout():
-        capture = cv2.VideoCapture(video_path)
+    capture = cv2.VideoCapture(video_path)
     frame_size = (int(capture.get(cv2.CAP_PROP_FRAME_WIDTH)), int(capture.get(cv2.CAP_PROP_FRAME_HEIGHT)))
     capture.release()
     return frame_size
@@ -81,9 +78,8 @@ def calculate_background(video_path, save_path = None, num_backgrounds = 1, save
         return
 
     try:
-        with suppress_stdout():
-            # Load the video.
-            capture = cv2.VideoCapture(video_path)
+        # Load the video.
+        capture = cv2.VideoCapture(video_path)
         # Initialize background array.
         background_array = []
         # Retrieve total number of frames in video.
@@ -208,9 +204,8 @@ def calculate_next_coords(init_coords, radius, frame, angle = 0, n_angles = 20, 
 
 def load_frames_into_memory(video_path, starting_frame = 0, frame_batch_size = 50, convert_gray_to_color = True):
 
-    with suppress_stdout():
-        # Open the video path.
-        capture = cv2.VideoCapture(video_path)
+    # Open the video path.
+    capture = cv2.VideoCapture(video_path)
 
     # Get the total number of frames in the video.
     video_n_frames = int(capture.get(cv2.CAP_PROP_FRAME_COUNT))
