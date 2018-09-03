@@ -6,14 +6,6 @@ import sys
 import multiprocessing as mp
 import time
 
-def subtract_background_from_frames(frame_array, background):
-    frame_array = [[success, cv2.absdiff(frame, background)] if success else [success, frame] for success, frame in frame_array]
-    return frame_array
-
-def apply_median_blur_to_frames(frame_array):
-    frame_array = [[success, cv2.medianBlur(frame, 3)] if success else [success, frame] for success, frame in frame_array]
-    return frame_array
-
 def get_total_frame_number_from_video(video_path):
     capture = cv2.VideoCapture(video_path)
     total_frame_number = int(capture.get(cv2.CAP_PROP_FRAME_COUNT))
@@ -31,6 +23,12 @@ def get_frame_size_from_video(video_path):
     frame_size = (int(capture.get(cv2.CAP_PROP_FRAME_WIDTH)), int(capture.get(cv2.CAP_PROP_FRAME_HEIGHT)))
     capture.release()
     return frame_size
+
+def get_video_format_from_video(video_path):
+    capture = cv2.VideoCapture(video_path)
+    video_format = capture.get(cv2.CAP_PROP_FORMAT)
+    capture.release()
+    return video_format
 
 def calculate_background(video_path, save_path = None, num_backgrounds = 1, save_background = False, dark_invert = False):
 
@@ -111,11 +109,11 @@ def calculate_background(video_path, save_path = None, num_backgrounds = 1, save
                     background[mask] = frame[mask]
                 # Compare the current number of frames iterated through to the number of backgrounds requested and add the background to the background array.
                 if frame_num > 0 and frame_num % background_chunk_index == 0:
-                    background_array.append(background)
+                    background_array.append(background.astype(np.uint8))
                 elif len(background_array) < num_backgrounds:
                     if (frame_num + 1) == video_total_frames:
-                        background_array.append(background)
-        print('Calculating background. Processing frame number: {0}/{1}.'.format(frame_num + 1, video_total_frames))
+                        background_array.append(background.astype(np.uint8))
+        print('Calculating background complete. Processing frame number: {0}/{1}.'.format(frame_num + 1, video_total_frames))
         # Save the background into an external file if requested.
         if save_background:
             if num_backgrounds == 1:
@@ -202,7 +200,51 @@ def calculate_next_coords(init_coords, radius, frame, angle = 0, n_angles = 20, 
     # Return the first set of coordinates.
     return np.array(next_coords[0])
 
-def load_frames_into_memory(video_path, starting_frame = 0, frame_batch_size = 50, convert_gray_to_color = True):
+def subtract_background_from_frame(frame, background):
+    background_subtracted_frame = cv2.absdiff(frame, background)
+    return background_subtracted_frame
+
+def apply_median_blur_to_frame(frame, value = 3):
+    median_blur_frame = cv2.medianBlur(frame, value)
+    return median_blur_frame
+
+def load_background_into_memory(background_path, convert_to_grayscale = True):
+
+    if convert_to_grayscale:
+        background = cv2.imread(background_path, cv2.IMREAD_GRAYSCALE).astype(np.uint8)
+    else:
+        background = cv2.imread(background_path).astype(np.uint8)
+
+    return background
+
+def load_frame_into_memory(video_path, frame_number = 0, convert_to_grayscale = True):
+
+    video_n_frames = get_total_frame_number_from_video(video_path)
+
+    if frame_number > video_n_frames:
+        frame_number = video_n_frames
+
+    capture = cv2.VideoCapture(video_path)
+
+    # Set the frame number to load.
+    capture.set(cv2.CAP_PROP_POS_FRAMES, frame_number)
+
+    success, original_frame = capture.read()
+    frame = None
+    if success and convert_to_grayscale:
+        frame = cv2.cvtColor(original_frame, cv2.COLOR_BGR2GRAY).astype(np.uint8)
+
+    return frame
+
+def subtract_background_from_frames(frame_array, background):
+    frame_array = [[success, cv2.absdiff(frame, background)] if success else [success, frame] for success, frame in frame_array]
+    return frame_array
+
+def apply_median_blur_to_frames(frame_array):
+    frame_array = [[success, cv2.medianBlur(frame, 3)] if success else [success, frame] for success, frame in frame_array]
+    return frame_array
+
+def load_frames_into_memory(video_path, starting_frame = 0, frame_batch_size = 50, convert_to_grayscale = True):
 
     # Open the video path.
     capture = cv2.VideoCapture(video_path)
@@ -217,7 +259,8 @@ def load_frames_into_memory(video_path, starting_frame = 0, frame_batch_size = 5
     # Load frames into memory.
     for i in range(frame_batch_size):
         success, original_frame = capture.read()
-        if success:
+        frame = original_frame.astype(np.uint8).copy()
+        if success and convert_to_grayscale:
             frame = cv2.cvtColor(original_frame, cv2.COLOR_BGR2GRAY).astype(np.uint8)
         frame_array.append([success, frame])
 
