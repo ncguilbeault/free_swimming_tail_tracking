@@ -207,6 +207,17 @@ def subtract_background_from_frame(frame, background):
     background_subtracted_frame = cv2.absdiff(frame, background)
     return background_subtracted_frame
 
+def annotate_tracking_results_onto_frame(frame, results, colours, line_length):
+
+    first_eye_coords, second_eye_coords, heading_coords, body_coords, heading_angle, tail_point_coords = results
+    annotated_frame = cv2.cvtColor(frame, cv2.COLOR_GRAY2RGB).astype(np.uint8)
+    annotated_frame = cv2.circle(annotated_frame, (int(round(first_eye_coords[1])), int(round(first_eye_coords[0]))), 1, colours[-2], -1)
+    annotated_frame = cv2.circle(annotated_frame, (int(round(second_eye_coords[1])), int(round(second_eye_coords[0]))), 1, colours[-2], - 1)
+    for i in range(len(tail_point_coords)):
+        annotated_frame = cv2.circle(annotated_frame, (int(round((tail_point_coords[i - 1][1] + tail_point_coords[i][1]) / 2)), int(round((tail_point_coords[i - 1][0] + tail_point_coords[i][0]) / 2))), 1, colours[i], -1)
+    annotated_frame = cv2.arrowedLine(annotated_frame, (int(round(heading_coords[1] - (line_length / 2 * np.cos(heading_angle)))), int(round(heading_coords[0] - (line_length / 2 * np.sin(heading_angle))))), (int(round(heading_coords[1] + (line_length * np.cos(heading_angle)))), int(round(heading_coords[0] + (line_length * np.sin(heading_angle))))), colours[-1], 1, tipLength = 0.2)
+    return annotated_frame
+
 def apply_median_blur_to_frame(frame, value = 3):
     median_blur_frame = cv2.medianBlur(frame, value)
     return median_blur_frame
@@ -237,7 +248,7 @@ def load_frame_into_memory(video_path, frame_number = 0, convert_to_grayscale = 
     if success and convert_to_grayscale:
         frame = cv2.cvtColor(original_frame, cv2.COLOR_BGR2GRAY).astype(np.uint8)
 
-    return frame
+    return success, frame
 
 def subtract_background_from_frames(frame_array, background):
     frame_array = [[success, cv2.absdiff(frame, background)] if success else [success, frame] for success, frame in frame_array]
@@ -483,33 +494,34 @@ def track_tail_in_frame(tracking_params):
     body_coords = [np.nan, np.nan]
     heading_angle = np.nan
     tail_point_coords = [[np.nan, np.nan] for m in range(n_tail_points + 1)]
-    if np.max(frame) > pixel_threshold:
-        # Return the coordinate of the brightest pixel.
-        first_eye_coords = [np.where(frame == np.max(frame))[0][0], np.where(frame == np.max(frame))[1][0]]
-        # Calculate the next brightest pixel that lies on the circle drawn around the first eye coordinates and has a radius equal to the distance between the eyes.
-        second_eye_coords = calculate_next_coords(first_eye_coords, dist_eyes, frame, n_angles = 100, range_angles = 2 * np.pi, tail_calculation = False)
-        # Find the midpoint of the line that connects both eyes.
-        heading_coords = [(first_eye_coords[0] + second_eye_coords[0]) / 2, (first_eye_coords[1] + second_eye_coords[1]) / 2]
-        # Find the swim bladder coordinates by finding the next brightest coordinates that lie on a circle around the heading coordinates with a radius equal to the distance between the eyes and the swim bladder.
-        tail_point_coords[0] = calculate_next_coords(heading_coords, dist_swim_bladder, frame, n_angles = 100, range_angles = 2 * np.pi, tail_calculation = False)
-        # Find the body coordinates by finding the center of the triangle that connects the eyes and swim bladder.
-        body_coords = [int(round((tail_point_coords[0][0] + first_eye_coords[0] + second_eye_coords[0]) / 3)), int(round((tail_point_coords[0][1] + first_eye_coords[1] + second_eye_coords[1]) / 3))]
-        # Calculate the heading angle as the angle between the body coordinates and the heading coordinates.
-        heading_angle = np.arctan2(heading_coords[0] - body_coords[0], heading_coords[1] - body_coords[1])
-        # Iterate through the number of tail points.
-        for m in range(1, n_tail_points + 1):
-            # Check if this is the first tail point.
-            if m == 1:
-                # Calculate the initial tail angle as the angle opposite to the heading angle.
-                if heading_angle > 0:
-                    tail_angle = heading_angle - np.pi
+    if success:
+        if np.max(frame) > pixel_threshold:
+            # Return the coordinate of the brightest pixel.
+            first_eye_coords = [np.where(frame == np.max(frame))[0][0], np.where(frame == np.max(frame))[1][0]]
+            # Calculate the next brightest pixel that lies on the circle drawn around the first eye coordinates and has a radius equal to the distance between the eyes.
+            second_eye_coords = calculate_next_coords(first_eye_coords, dist_eyes, frame, n_angles = 100, range_angles = 2 * np.pi, tail_calculation = False)
+            # Find the midpoint of the line that connects both eyes.
+            heading_coords = [(first_eye_coords[0] + second_eye_coords[0]) / 2, (first_eye_coords[1] + second_eye_coords[1]) / 2]
+            # Find the swim bladder coordinates by finding the next brightest coordinates that lie on a circle around the heading coordinates with a radius equal to the distance between the eyes and the swim bladder.
+            tail_point_coords[0] = calculate_next_coords(heading_coords, dist_swim_bladder, frame, n_angles = 100, range_angles = 2 * np.pi, tail_calculation = False)
+            # Find the body coordinates by finding the center of the triangle that connects the eyes and swim bladder.
+            body_coords = [int(round((tail_point_coords[0][0] + first_eye_coords[0] + second_eye_coords[0]) / 3)), int(round((tail_point_coords[0][1] + first_eye_coords[1] + second_eye_coords[1]) / 3))]
+            # Calculate the heading angle as the angle between the body coordinates and the heading coordinates.
+            heading_angle = np.arctan2(heading_coords[0] - body_coords[0], heading_coords[1] - body_coords[1])
+            # Iterate through the number of tail points.
+            for m in range(1, n_tail_points + 1):
+                # Check if this is the first tail point.
+                if m == 1:
+                    # Calculate the initial tail angle as the angle opposite to the heading angle.
+                    if heading_angle > 0:
+                        tail_angle = heading_angle - np.pi
+                    else:
+                        tail_angle = heading_angle + np.pi
                 else:
-                    tail_angle = heading_angle + np.pi
-            else:
-                # Calculate the next tail angle as the angle between the last two tail points.
-                tail_angle = np.arctan2(tail_point_coords[m - 1][0] - tail_point_coords[m - 2][0], tail_point_coords[m - 1][1] - tail_point_coords[m - 2][1])
-            # Calculate the next set of tail coordinates.
-            tail_point_coords[m] = calculate_next_coords(tail_point_coords[m - 1], dist_tail_points, frame, angle = tail_angle)
+                    # Calculate the next tail angle as the angle between the last two tail points.
+                    tail_angle = np.arctan2(tail_point_coords[m - 1][0] - tail_point_coords[m - 2][0], tail_point_coords[m - 1][1] - tail_point_coords[m - 2][1])
+                # Calculate the next set of tail coordinates.
+                tail_point_coords[m] = calculate_next_coords(tail_point_coords[m - 1], dist_tail_points, frame, angle = tail_angle)
 
     return np.array([np.array(first_eye_coords), np.array(second_eye_coords), np.array(heading_coords), np.array(body_coords), heading_angle, np.array(tail_point_coords)])
 
