@@ -125,7 +125,7 @@ def calculate_background(video_path, save_path = None, num_backgrounds = 1, save
             else:
                 for i in range(len(background_array)):
                     if save_path != None:
-                        background_path = '{0}\\{1}_background{1}.tif'.format(save_path, os.path.basename(video_path)[:-4], i + 1)
+                        background_path = '{0}\\{1}_background{2}.tif'.format(save_path, os.path.basename(video_path)[:-4], i + 1)
                     else:
                         background_path = '{0}_background{1}.tif'.format(video_path[:-4], i + 1)
                     cv2.imwrite(background_path, background_array[i].astype(np.uint8))
@@ -199,6 +199,9 @@ def calculate_next_coords(init_coords, radius, frame, angle = 0, n_angles = 20, 
             next_coords = [next_coords[i] for i in range(len(next_coords)) if np.hypot(next_coords[i][0] - init_coords[0], next_coords[i][1] - init_coords[1]) == min_value]
     # Return the first set of coordinates.
     return np.array(next_coords[0])
+
+def save_background_to_file(background, background_path):
+    cv2.imwrite(background_path, background.astype(np.uint8))
 
 def subtract_background_from_frame(frame, background):
     background_subtracted_frame = cv2.absdiff(frame, background)
@@ -510,7 +513,7 @@ def track_tail_in_frame(tracking_params):
 
     return np.array([np.array(first_eye_coords), np.array(second_eye_coords), np.array(heading_coords), np.array(body_coords), heading_angle, np.array(tail_point_coords)])
 
-def track_tail_in_video_with_multiprocessing(video_path, colours, n_tail_points, dist_tail_points, dist_eyes, dist_swim_bladder, init_frame_batch_size = 50, init_starting_frame = 0, save_path = None, background_path = None, save_background = True, line_length = 0, video_fps = None, n_frames = None, pixel_threshold = 100, frame_change_threshold = 10):
+def track_tail_in_video_with_multiprocessing(video_path, colours, n_tail_points, dist_tail_points, dist_eyes, dist_swim_bladder, init_frame_batch_size = 50, init_starting_frame = 0, save_path = None, background_path = None, save_background = False, line_length = 0, video_fps = None, n_frames = None, pixel_threshold = 100, frame_change_threshold = 10):
 
     t0 = time.time()
 
@@ -599,7 +602,7 @@ def track_tail_in_video_with_multiprocessing(video_path, colours, n_tail_points,
 
     return results
 
-def track_tail_in_video_without_multiprocessing(video_path, colours, n_tail_points, dist_tail_points, dist_eyes, dist_swim_bladder, init_frame_batch_size = 50, init_starting_frame = 0, save_path = None, background_path = None, save_background = True, line_length = 0, video_fps = None, n_frames = None, pixel_threshold = 100, frame_change_threshold = 10):
+def track_tail_in_video_without_multiprocessing(video_path, colours, n_tail_points, dist_tail_points, dist_eyes, dist_swim_bladder, init_frame_batch_size = 50, init_starting_frame = 0, save_path = None, background_path = None, save_background = False, line_length = 0, video_fps = None, n_frames = None, pixel_threshold = 100, frame_change_threshold = 10):
 
     t0 = time.time()
 
