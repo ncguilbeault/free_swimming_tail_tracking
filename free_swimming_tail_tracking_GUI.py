@@ -69,14 +69,12 @@ class MainWindow(QMainWindow):
         self.pixel_threshold = 100
         self.frame_change_threshold = 10
         self.colours = []
-        # self.tracking_params = []
     def load_optimal_tracking_parameters(self):
         self.n_tail_points = 7
         self.dist_tail_points = 5
         self.dist_eyes = 4
         self.dist_swim_bladder = 12
         self.pixel_threshold = 40
-        # self.tracking_params = [self.n_tail_points, self.dist_tail_points, self.dist_eyes, self.dist_swim_bladder]
         self.colours = [(0, 0, 255), (0, 127, 255), (0, 255, 255),
             (0, 255, 127), (0, 255, 0), (255, 255, 0),
             (255, 0, 0), (255, 0, 127), (147, 20, 255),
@@ -259,14 +257,14 @@ class MainWindow(QMainWindow):
         self.preview_frame_number_textbox.resize(100, 20)
         self.preview_frame_number_textbox.setAlignment(Qt.AlignLeft | Qt.AlignTop)
         self.preview_frame_number_textbox.setFont(font)
-        self.preview_frame_number_textbox.returnPressed.connect(self.update_preview_from_button)
+        self.preview_frame_number_textbox.returnPressed.connect(self.check_preview_frame_number_textbox)
         self.update_preview_frame_number_textbox(inactivate = True)
     def add_update_preview_button(self):
         self.update_preview_button = QPushButton('Update Preview', self)
         self.update_preview_button.move(5, 1090)
         self.update_preview_button.resize(245, 50)
-        self.update_preview_button.clicked.connect(self.update_preview_from_button)
-        self.update_preview_from_button(inactivate = True)
+        self.update_preview_button.clicked.connect(self.check_preview_frame_number_textbox)
+        self.update_update_preview_button(inactivate = True)
     def add_preview_parameters_window(self):
         font = QFont()
         font.setPointSize(18)
@@ -285,7 +283,7 @@ class MainWindow(QMainWindow):
         self.preview_background_checkbox = QCheckBox(self)
         self.preview_background_checkbox.move(1025, 1110)
         self.preview_background_checkbox.setEnabled(False)
-        self.preview_background_checkbox.stateChanged.connect(self.trigger_preview_background_checkbox)
+        self.preview_background_checkbox.stateChanged.connect(self.check_preview_background_checkbox)
         self.preview_background_checkbox_label = QLabel(self)
         self.preview_background_checkbox_label.move(1045, 1113)
         self.preview_background_checkbox_label.resize(500, 20)
@@ -295,7 +293,7 @@ class MainWindow(QMainWindow):
 
         self.preview_background_subtracted_frame_checkbox = QCheckBox(self)
         self.preview_background_subtracted_frame_checkbox.move(1025, 1150)
-        self.preview_background_subtracted_frame_checkbox.stateChanged.connect(self.trigger_preview_background_subtracted_frame_checkbox)
+        self.preview_background_subtracted_frame_checkbox.stateChanged.connect(self.check_preview_background_subtracted_frame_checkbox)
         self.preview_background_subtracted_frame_checkbox_label = QLabel(self)
         self.preview_background_subtracted_frame_checkbox_label.move(1045, 1153)
         self.preview_background_subtracted_frame_checkbox_label.resize(500, 20)
@@ -305,7 +303,7 @@ class MainWindow(QMainWindow):
 
         self.preview_tracking_results_checkbox = QCheckBox(self)
         self.preview_tracking_results_checkbox.move(1025, 1190)
-        self.preview_tracking_results_checkbox.stateChanged.connect(self.trigger_preview_tracking_results_checkbox)
+        self.preview_tracking_results_checkbox.stateChanged.connect(self.check_preview_tracking_results_checkbox)
         self.preview_tracking_results_checkbox.setEnabled(False)
         self.preview_tracking_results_checkbox_label = QLabel(self)
         self.preview_tracking_results_checkbox_label.move(1045, 1193)
@@ -341,7 +339,7 @@ class MainWindow(QMainWindow):
         self.tracking_n_tail_points_textbox.setText('{0}'.format(self.n_tail_points))
         self.tracking_n_tail_points_textbox.setAlignment(Qt.AlignLeft | Qt.AlignTop)
         self.tracking_n_tail_points_textbox.setFont(font)
-        self.tracking_n_tail_points_textbox.textEdited.connect(self.check_tracking_n_tail_points_textbox)
+        self.tracking_n_tail_points_textbox.returnPressed.connect(self.check_tracking_n_tail_points_textbox)
 
         self.tracking_dist_tail_points_textbox_label = QLabel(self)
         self.tracking_dist_tail_points_textbox_label.move(1500, 140)
@@ -355,7 +353,7 @@ class MainWindow(QMainWindow):
         self.tracking_dist_tail_points_textbox.setText('{0}'.format(self.dist_tail_points))
         self.tracking_dist_tail_points_textbox.setAlignment(Qt.AlignLeft | Qt.AlignTop)
         self.tracking_dist_tail_points_textbox.setFont(font)
-        self.tracking_dist_tail_points_textbox.textEdited.connect(self.check_tracking_dist_tail_points_textbox)
+        self.tracking_dist_tail_points_textbox.returnPressed.connect(self.check_tracking_dist_tail_points_textbox)
 
         self.tracking_dist_eyes_textbox_label = QLabel(self)
         self.tracking_dist_eyes_textbox_label.move(1500, 180)
@@ -369,7 +367,7 @@ class MainWindow(QMainWindow):
         self.tracking_dist_eyes_textbox.setText('{0}'.format(self.dist_eyes))
         self.tracking_dist_eyes_textbox.setAlignment(Qt.AlignLeft | Qt.AlignTop)
         self.tracking_dist_eyes_textbox.setFont(font)
-        self.tracking_dist_eyes_textbox.textEdited.connect(self.check_tracking_dist_eyes_textbox)
+        self.tracking_dist_eyes_textbox.returnPressed.connect(self.check_tracking_dist_eyes_textbox)
 
         self.tracking_dist_swim_bladder_textbox_label = QLabel(self)
         self.tracking_dist_swim_bladder_textbox_label.move(1500, 220)
@@ -383,7 +381,7 @@ class MainWindow(QMainWindow):
         self.tracking_dist_swim_bladder_textbox.setText('{0}'.format(self.dist_swim_bladder))
         self.tracking_dist_swim_bladder_textbox.setAlignment(Qt.AlignLeft | Qt.AlignTop)
         self.tracking_dist_swim_bladder_textbox.setFont(font)
-        self.tracking_dist_swim_bladder_textbox.textEdited.connect(self.check_tracking_dist_swim_bladder_textbox)
+        self.tracking_dist_swim_bladder_textbox.returnPressed.connect(self.check_tracking_dist_swim_bladder_textbox)
 
         self.tracking_frame_batch_size_textbox_label = QLabel(self)
         self.tracking_frame_batch_size_textbox_label.move(1500, 260)
@@ -397,7 +395,7 @@ class MainWindow(QMainWindow):
         self.tracking_frame_batch_size_textbox.setText('{0}'.format(self.frame_batch_size))
         self.tracking_frame_batch_size_textbox.setAlignment(Qt.AlignLeft | Qt.AlignTop)
         self.tracking_frame_batch_size_textbox.setFont(font)
-        self.tracking_frame_batch_size_textbox.textEdited.connect(self.check_tracking_frame_batch_size_textbox)
+        self.tracking_frame_batch_size_textbox.returnPressed.connect(self.check_tracking_frame_batch_size_textbox)
 
         self.tracking_starting_frame_textbox_label = QLabel(self)
         self.tracking_starting_frame_textbox_label.move(1500, 300)
@@ -411,7 +409,7 @@ class MainWindow(QMainWindow):
         self.tracking_starting_frame_textbox.setText('{0}'.format(self.starting_frame))
         self.tracking_starting_frame_textbox.setAlignment(Qt.AlignLeft | Qt.AlignTop)
         self.tracking_starting_frame_textbox.setFont(font)
-        self.tracking_starting_frame_textbox.textEdited.connect(self.check_tracking_starting_frame_textbox)
+        self.tracking_starting_frame_textbox.returnPressed.connect(self.check_tracking_starting_frame_textbox)
 
         self.tracking_n_frames_textbox_label = QLabel(self)
         self.tracking_n_frames_textbox_label.move(1500, 340)
@@ -425,7 +423,7 @@ class MainWindow(QMainWindow):
         self.tracking_n_frames_textbox.setText('{0}'.format(self.n_frames))
         self.tracking_n_frames_textbox.setAlignment(Qt.AlignLeft | Qt.AlignTop)
         self.tracking_n_frames_textbox.setFont(font)
-        self.tracking_n_frames_textbox.textEdited.connect(self.check_tracking_n_frames_textbox)
+        self.tracking_n_frames_textbox.returnPressed.connect(self.check_tracking_n_frames_textbox)
 
         self.tracking_line_length_textbox_label = QLabel(self)
         self.tracking_line_length_textbox_label.move(1500, 380)
@@ -439,7 +437,7 @@ class MainWindow(QMainWindow):
         self.tracking_line_length_textbox.setText('{0}'.format(self.line_length))
         self.tracking_line_length_textbox.setAlignment(Qt.AlignLeft | Qt.AlignTop)
         self.tracking_line_length_textbox.setFont(font)
-        self.tracking_line_length_textbox.textEdited.connect(self.check_tracking_line_length_textbox)
+        self.tracking_line_length_textbox.returnPressed.connect(self.check_tracking_line_length_textbox)
 
         self.tracking_pixel_threshold_textbox_label = QLabel(self)
         self.tracking_pixel_threshold_textbox_label.move(1500, 420)
@@ -453,7 +451,7 @@ class MainWindow(QMainWindow):
         self.tracking_pixel_threshold_textbox.setText('{0}'.format(self.pixel_threshold))
         self.tracking_pixel_threshold_textbox.setAlignment(Qt.AlignLeft | Qt.AlignTop)
         self.tracking_pixel_threshold_textbox.setFont(font)
-        self.tracking_pixel_threshold_textbox.textEdited.connect(self.check_tracking_pixel_threshold_textbox)
+        self.tracking_pixel_threshold_textbox.returnPressed.connect(self.check_tracking_pixel_threshold_textbox)
 
         self.tracking_frame_change_threshold_textbox_label = QLabel(self)
         self.tracking_frame_change_threshold_textbox_label.move(1500, 460)
@@ -467,7 +465,7 @@ class MainWindow(QMainWindow):
         self.tracking_frame_change_threshold_textbox.setText('{0}'.format(self.frame_change_threshold))
         self.tracking_frame_change_threshold_textbox.setAlignment(Qt.AlignLeft | Qt.AlignTop)
         self.tracking_frame_change_threshold_textbox.setFont(font)
-        self.tracking_frame_change_threshold_textbox.textEdited.connect(self.check_tracking_frame_change_threshold_textbox)
+        self.tracking_frame_change_threshold_textbox.returnPressed.connect(self.check_tracking_frame_change_threshold_textbox)
         self.update_tracking_parameters(inactivate = True)
 
     # Defining Update Functions
@@ -501,6 +499,7 @@ class MainWindow(QMainWindow):
         if not clear:
             self.preview_frame_window.setPixmap(QPixmap.fromImage(self.preview_frame))
         else:
+            print('here')
             self.preview_frame_window.clear()
     def update_preview_parameters(self, activate = False, inactivate = False, activate_preview_background = False):
         if activate_preview_background:
@@ -548,43 +547,13 @@ class MainWindow(QMainWindow):
             self.preview_frame_number_textbox.setText('{0}'.format(self.frame_number))
         else:
             self.preview_frame_number_textbox.setText('{0}'.format(0))
-    def update_preview_from_button(self, activate = False, inactivate = False):
+    def update_update_preview_button(self, activate = False, inactivate = False):
         if activate:
             if not self.update_preview_button.isEnabled():
                 self.update_preview_button.setEnabled(True)
         if inactivate:
             if self.update_preview_button.isEnabled():
                 self.update_preview_button.setEnabled(False)
-        if self.update_preview_button.isEnabled():
-            if not self.preview_background:
-                if self.video_path is not None:
-                    if self.preview_frame_number_textbox.text().isdigit():
-                        if int(self.preview_frame_number_textbox.text()) > self.video_n_frames:
-                            self.frame_number = self.video_n_frames
-                        else:
-                            if int(self.preview_frame_number_textbox.text()) != 0:
-                                self.frame_number = int(self.preview_frame_number_textbox.text())
-                            else:
-                                self.frame_number = 1
-                    else:
-                        self.frame_number = 1
-                    success, self.frame = tr.load_frame_into_memory(self.video_path, self.frame_number - 1)
-                    if success and self.frame is not None:
-                        use_grayscale = True
-                        if self.preview_background_subtracted_frame:
-                            self.frame = tr.subtract_background_from_frame(self.frame, self.background)
-                            if self.preview_tracking_results:
-                                results = tr.track_tail_in_frame([tr.apply_median_blur_to_frame(self.frame), success, self.n_tail_points, self.dist_tail_points, self.dist_eyes, self.dist_swim_bladder, self.pixel_threshold])
-                                self.frame = tr.annotate_tracking_results_onto_frame(self.frame, results, self.colours, self.line_length)
-                                use_grayscale = False
-                        elif self.preview_tracking_results:
-                            results = tr.track_tail_in_frame([tr.apply_median_blur_to_frame(tr.subtract_background_from_frame(self.frame, self.background)), success, self.n_tail_points, self.dist_tail_points, self.dist_eyes, self.dist_swim_bladder, self.pixel_threshold])
-                            self.frame = tr.annotate_tracking_results_onto_frame(self.frame, results, self.colours, self.line_length)
-                            use_grayscale = False
-                        self.update_preview_frame(self.frame, self.video_frame_width, self.video_frame_height, grayscale = use_grayscale)
-                        self.update_preview_frame_window()
-                        self.update_frame_window_slider_position()
-                        self.update_preview_frame_number_textbox()
     def update_frame_window_slider_position(self):
         self.frame_window_slider.setValue(self.frame_number)
     def update_tracking_parameters(self, activate = False, inactivate = False):
@@ -662,11 +631,11 @@ class MainWindow(QMainWindow):
     def trigger_calculate_background(self):
         if self.video_path is not None:
             self.background_path = 'Background calculated and loaded into memory/Background calculated and loaded into memory'
-            if self.background_path:
-                self.background = tr.calculate_background(self.video_path)[0]
-                self.get_background_attributes()
-                self.update_descriptors()
-                self.update_preview_parameters(activate = True)
+            self.background = tr.calculate_background(self.video_path)[0]
+            self.get_background_attributes()
+            self.update_descriptors()
+            self.update_preview_parameters(activate = True)
+            self.update_tracking_parameters(activate = True)
     def trigger_select_save_path(self):
         self.save_path = QFileDialog.getExistingDirectory(self, 'Select save path.')
         if self.save_path:
@@ -693,12 +662,12 @@ class MainWindow(QMainWindow):
                 self.update_preview_frame_window()
                 self.update_frame_window_slider(activate = True)
                 self.update_preview_frame_number_textbox(activate = True)
-                self.update_preview_from_button(activate = True)
+                self.update_update_preview_button(activate = True)
                 if self.background_path:
                     self.update_tracking_parameters(activate = True)
     def trigger_moved_frame_window_slider(self):
+        self.frame_number = int(self.frame_window_slider.sliderPosition())
         if self.video_path is not None:
-            self.frame_number = int(self.frame_window_slider.sliderPosition())
             success, self.frame = tr.load_frame_into_memory(self.video_path, self.frame_number - 1)
             if success and self.frame is not None:
                 use_grayscale = True
@@ -715,14 +684,13 @@ class MainWindow(QMainWindow):
                 self.update_preview_frame(self.frame, self.video_frame_width, self.video_frame_height, grayscale = use_grayscale)
                 self.update_preview_frame_window()
                 self.update_preview_frame_number_textbox()
-    def trigger_preview_background_checkbox(self):
-        self.preview_background = self.preview_background_checkbox.isChecked()
+    def trigger_update_preview(self):
         if self.preview_background:
             self.update_preview_frame(self.background, self.background_width, self.background_height)
             self.update_preview_frame_window()
             self.update_frame_window_slider(inactivate = True)
             self.update_preview_frame_number_textbox(inactivate = True)
-            self.update_preview_from_button(inactivate = True)
+            self.update_update_preview_button(inactivate = True)
         else:
             if self.video_path is not None:
                 success, self.frame = tr.load_frame_into_memory(self.video_path, self.frame_number - 1)
@@ -742,81 +710,80 @@ class MainWindow(QMainWindow):
                     self.update_preview_frame_window()
                     self.update_frame_window_slider(activate = True)
                     self.update_preview_frame_number_textbox(activate = True)
-                    self.update_preview_from_button(activate = True)
+                    self.update_update_preview_button(activate = True)
             else:
                 self.update_preview_frame_window(clear = True)
-    def trigger_preview_background_subtracted_frame_checkbox(self):
-        self.preview_background_subtracted_frame = self.preview_background_subtracted_frame_checkbox.isChecked()
-        if not self.preview_background:
-            success, self.frame = tr.load_frame_into_memory(self.video_path, self.frame_number - 1)
-            if success and self.frame is not None:
-                use_grayscale = True
-                if self.preview_background_subtracted_frame:
-                    self.frame = tr.subtract_background_from_frame(self.frame, self.background)
-                    if self.preview_tracking_results:
-                        results = tr.track_tail_in_frame([tr.apply_median_blur_to_frame(self.frame), success, self.n_tail_points, self.dist_tail_points, self.dist_eyes, self.dist_swim_bladder, self.pixel_threshold])
-                        self.frame = tr.annotate_tracking_results_onto_frame(self.frame, results, self.colours, self.line_length)
-                        use_grayscale = False
-                elif self.preview_tracking_results:
-                    results = tr.track_tail_in_frame([tr.apply_median_blur_to_frame(tr.subtract_background_from_frame(self.frame, self.background)), success, self.n_tail_points, self.dist_tail_points, self.dist_eyes, self.dist_swim_bladder, self.pixel_threshold])
-                    self.frame = tr.annotate_tracking_results_onto_frame(self.frame, results, self.colours, self.line_length)
-                    use_grayscale = False
-                self.update_preview_frame(self.frame, self.video_frame_width, self.video_frame_height, grayscale = use_grayscale)
-                self.update_preview_frame_window()
-                self.update_frame_window_slider()
-                self.update_preview_frame_number_textbox()
-    def trigger_preview_tracking_results_checkbox(self):
-        self.preview_tracking_results = self.preview_tracking_results_checkbox.isChecked()
-        if not self.preview_background:
-            success, self.frame = tr.load_frame_into_memory(self.video_path, self.frame_number - 1)
-            if success and self.frame is not None:
-                use_grayscale = True
-                if self.preview_background_subtracted_frame:
-                    self.frame = tr.subtract_background_from_frame(self.frame, self.background)
-                    if self.preview_tracking_results:
-                        results = tr.track_tail_in_frame([tr.apply_median_blur_to_frame(self.frame), success, self.n_tail_points, self.dist_tail_points, self.dist_eyes, self.dist_swim_bladder, self.pixel_threshold])
-                        self.frame = tr.annotate_tracking_results_onto_frame(self.frame, results, self.colours, self.line_length)
-                        use_grayscale = False
-                elif self.preview_tracking_results:
-                    results = tr.track_tail_in_frame([tr.apply_median_blur_to_frame(tr.subtract_background_from_frame(self.frame, self.background)), success, self.n_tail_points, self.dist_tail_points, self.dist_eyes, self.dist_swim_bladder, self.pixel_threshold])
-                    self.frame = tr.annotate_tracking_results_onto_frame(self.frame, results, self.colours, self.line_length)
-                    use_grayscale = False
-                self.update_preview_frame(self.frame, self.video_frame_width, self.video_frame_height, grayscale = use_grayscale)
-                self.update_preview_frame_window()
-                self.update_frame_window_slider()
-                self.update_preview_frame_number_textbox()
 
     # Defining Check Functions
+    def check_preview_frame_number_textbox(self):
+        if self.preview_frame_number_textbox.text().isdigit():
+            if int(self.preview_frame_number_textbox.text()) > self.video_n_frames:
+                self.frame_number = self.video_n_frames
+            else:
+                if int(self.preview_frame_number_textbox.text()) != 0:
+                    self.frame_number = int(self.preview_frame_number_textbox.text())
+                else:
+                    self.frame_number = 1
+        self.trigger_update_preview()
+    def check_preview_background_checkbox(self):
+        self.preview_background = self.preview_background_checkbox.isChecked()
+        self.trigger_update_preview()
+    def check_preview_background_subtracted_frame_checkbox(self):
+        self.preview_background_subtracted_frame = self.preview_background_subtracted_frame_checkbox.isChecked()
+        self.trigger_update_preview()
+    def check_preview_tracking_results_checkbox(self):
+        self.preview_tracking_results = self.preview_tracking_results_checkbox.isChecked()
+        self.trigger_update_preview()
     def check_tracking_n_tail_points_textbox(self):
         if self.tracking_n_tail_points_textbox.text().isdigit():
             self.n_tail_points = int(self.tracking_n_tail_points_textbox.text())
+            if self.preview_tracking_results:
+                self.trigger_update_preview()
     def check_tracking_dist_tail_points_textbox(self):
-        if self.tracking_n_tail_points_textbox.text().isdigit():
-            self.n_tail_points = int(self.tracking_n_tail_points_textbox.text())
+        if self.tracking_dist_tail_points_textbox.text().isdigit():
+            self.dist_tail_points = int(self.tracking_dist_tail_points_textbox.text())
+            if self.preview_tracking_results:
+                self.trigger_update_preview()
     def check_tracking_dist_eyes_textbox(self):
         if self.tracking_dist_eyes_textbox.text().isdigit():
             self.dist_eyes = int(self.tracking_dist_eyes_textbox.text())
+            if self.preview_tracking_results:
+                self.trigger_update_preview()
     def check_tracking_dist_swim_bladder_textbox(self):
         if self.tracking_dist_swim_bladder_textbox.text().isdigit():
             self.dist_swim_bladder = int(self.tracking_dist_swim_bladder_textbox.text())
+            if self.preview_tracking_results:
+                self.trigger_update_preview()
     def check_tracking_frame_batch_size_textbox(self):
         if self.tracking_frame_batch_size_textbox.text().isdigit():
             self.frame_batch_size = int(self.tracking_frame_batch_size_textbox.text())
+            if self.preview_tracking_results:
+                self.trigger_update_preview()
     def check_tracking_starting_frame_textbox(self):
         if self.tracking_starting_frame_textbox.text().isdigit():
             self.starting_frame = int(self.tracking_starting_frame_textbox.text())
+            if self.preview_tracking_results:
+                self.trigger_update_preview()
     def check_tracking_n_frames_textbox(self):
         if self.tracking_n_frames_textbox.text().isdigit():
             self.n_frames = int(self.tracking_n_frames_textbox.text())
+            if self.preview_tracking_results:
+                self.trigger_update_preview()
     def check_tracking_line_length_textbox(self):
         if self.tracking_line_length_textbox.text().isdigit():
             self.line_length = int(self.tracking_line_length_textbox.text())
+            if self.preview_tracking_results:
+                self.trigger_update_preview()
     def check_tracking_pixel_threshold_textbox(self):
         if self.tracking_pixel_threshold_textbox.text().isdigit():
             self.pixel_threshold = int(self.tracking_pixel_threshold_textbox.text())
+            if self.preview_tracking_results:
+                self.trigger_update_preview()
     def check_tracking_frame_change_threshold_textbox(self):
         if self.tracking_frame_change_threshold_textbox.text().isdigit():
             self.frame_change_threshold = int(self.tracking_frame_change_threshold_textbox.text())
+            if self.preview_tracking_results:
+                self.trigger_update_preview()
 
     # Defining Event Functions
     def closeEvent(self, event):
