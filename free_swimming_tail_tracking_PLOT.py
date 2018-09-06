@@ -1,3 +1,5 @@
+'''Software Written by Nicholas Guilbeault 2018'''
+
 import numpy as np
 import matplotlib.pyplot as plt
 

@@ -1,3 +1,5 @@
+'''Software Written by Nicholas Guilbeault 2018'''
+
 # Import libraries.
 import numpy as np
 import cv2

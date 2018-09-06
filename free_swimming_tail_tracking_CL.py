@@ -1,3 +1,5 @@
+'''Software Written by Nicholas Guilbeault 2018'''
+
 import free_swimming_tail_tracking as tr
 
 # Create the video path.
