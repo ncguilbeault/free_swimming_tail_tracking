@@ -499,7 +499,6 @@ class MainWindow(QMainWindow):
         if not clear:
             self.preview_frame_window.setPixmap(QPixmap.fromImage(self.preview_frame))
         else:
-            print('here')
             self.preview_frame_window.clear()
     def update_preview_parameters(self, activate = False, inactivate = False, activate_preview_background = False):
         if activate_preview_background:
@@ -665,6 +664,7 @@ class MainWindow(QMainWindow):
                 self.update_update_preview_button(activate = True)
                 if self.background_path:
                     self.update_tracking_parameters(activate = True)
+                    self.update_preview_parameters(activate = True)
     def trigger_moved_frame_window_slider(self):
         self.frame_number = int(self.frame_window_slider.sliderPosition())
         if self.video_path is not None:
