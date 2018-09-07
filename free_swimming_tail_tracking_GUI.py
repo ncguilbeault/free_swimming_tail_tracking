@@ -35,8 +35,7 @@ class MainWindow(QMainWindow):
         self.add_preview_parameters_to_window()
         self.add_tracking_parameters_window()
         self.add_tracking_parameters_to_window()
-        self.add_load_tracking_parameters_buttons()
-        self.trigger_load_default_tracking_parameters()
+        self.add_tracking_parameters_buttons()
         self.setMenuBar(self.menubar)
         self.setStatusBar(self.statusbar)
         self.setWindowTitle('Free Swimming Tail Tracking')
@@ -134,6 +133,12 @@ class MainWindow(QMainWindow):
         self.save_background_action.setStatusTip('Save Background')
         self.save_background_action.triggered.connect(self.trigger_save_background)
         self.options_menu.addAction(self.save_background_action)
+
+        self.unload_all_action = QAction('&Unload All', self)
+        self.unload_all_action.setShortcut('Ctrl+U')
+        self.unload_all_action.setStatusTip('Unload All Things From Memory')
+        self.unload_all_action.triggered.connect(self.trigger_unload_all)
+        self.options_menu.addAction(self.unload_all_action)
     def add_preview_frame_window(self):
         font = QFont()
         font.setPointSize(18)
@@ -510,7 +515,7 @@ class MainWindow(QMainWindow):
         self.tracking_frame_change_threshold_textbox.setFont(font)
         self.tracking_frame_change_threshold_textbox.returnPressed.connect(self.check_tracking_frame_change_threshold_textbox)
         self.update_tracking_parameters(inactivate = True)
-    def add_load_tracking_parameters_buttons(self):
+    def add_tracking_parameters_buttons(self):
         font = QFont()
         font.setPointSize(10)
         self.load_default_tracking_parameters_button = QPushButton('Load Default Tracking Parameters', self)
@@ -524,7 +529,14 @@ class MainWindow(QMainWindow):
         self.load_previous_tracking_parameters_button.resize(400, 100)
         self.load_previous_tracking_parameters_button.setFont(font)
         self.load_previous_tracking_parameters_button.clicked.connect(self.trigger_load_previous_tracking_parameters)
-        self.update_load_tracking_parameters_buttons(inactivate = True)
+
+        self.save_current_tracking_parameters_button = QPushButton('Save Current Tracking Parameters', self)
+        self.save_current_tracking_parameters_button.move(1800, 720)
+        self.save_current_tracking_parameters_button.resize(400, 100)
+        self.save_current_tracking_parameters_button.setFont(font)
+        self.save_current_tracking_parameters_button.clicked.connect(self.trigger_save_current_tracking_parameters)
+        self.trigger_load_default_tracking_parameters()
+        self.update_tracking_parameters_buttons(inactivate = True)
 
     # Defining Update Functions
     def update_statusbar_message(self):
@@ -703,17 +715,21 @@ class MainWindow(QMainWindow):
             self.tracking_pixel_threshold_textbox.setText('{0}'.format(self.pixel_threshold))
         if self.tracking_frame_change_threshold_textbox.isEnabled():
             self.tracking_frame_change_threshold_textbox.setText('{0}'.format(self.frame_change_threshold))
-    def update_load_tracking_parameters_buttons(self, activate = False, inactivate = False):
+    def update_tracking_parameters_buttons(self, activate = False, inactivate = False):
         if activate:
             if not self.load_default_tracking_parameters_button.isEnabled():
                 self.load_default_tracking_parameters_button.setEnabled(True)
             if not self.load_previous_tracking_parameters_button.isEnabled():
                 self.load_previous_tracking_parameters_button.setEnabled(True)
+            if not self.save_current_tracking_parameters_button.isEnabled():
+                self.save_current_tracking_parameters_button.setEnabled(True)
         if inactivate:
             if self.load_default_tracking_parameters_button.isEnabled():
                 self.load_default_tracking_parameters_button.setEnabled(False)
             if self.load_previous_tracking_parameters_button.isEnabled():
                 self.load_previous_tracking_parameters_button.setEnabled(False)
+            if self.save_current_tracking_parameters_button.isEnabled():
+                self.save_current_tracking_parameters_button.setEnabled(False)
 
     # Defining Trigger Functions
     def trigger_save_background(self):
@@ -723,6 +739,12 @@ class MainWindow(QMainWindow):
                 tr.save_background_to_file(self.background, self.background_path)
                 self.get_background_attributes()
                 self.update_descriptors()
+        else:
+            self.save_path = self.video_path_folder
+            self.background_path = '{0}/{1}_background.tif'.format(self.save_path, self.video_path_basename[:-4])
+            tr.save_background_to_file(self.background, self.background_path)
+            self.get_background_attributes()
+            self.update_descriptors()
     def trigger_calculate_background(self):
         if self.video_path is not None:
             self.background_path = 'Background calculated and loaded into memory/Background calculated and loaded into memory'
@@ -731,6 +753,7 @@ class MainWindow(QMainWindow):
             self.update_descriptors()
             self.update_preview_parameters(activate = True)
             self.update_tracking_parameters(activate = True)
+            self.update_tracking_parameters_buttons(activate = True)
     def trigger_select_save_path(self):
         self.save_path = QFileDialog.getExistingDirectory(self, 'Select save path.')
         if self.save_path:
@@ -744,11 +767,11 @@ class MainWindow(QMainWindow):
             if self.video_path:
                 self.update_preview_parameters(activate = True)
                 self.update_tracking_parameters(activate = True)
-                self.update_load_tracking_parameters_buttons(activate = True)
+                self.update_tracking_parameters_buttons(activate = True)
             else:
                 self.update_preview_parameters(activate_preview_background = True)
     def trigger_open_video(self):
-        self.video_path, _ = QFileDialog.getOpenFileName(self,"QFileDialog.getOpenFileName()", "","Video Files (*.avi)", options=QFileDialog.Options())
+        self.video_path, _ = QFileDialog.getOpenFileName(self,"Open Video File", "","Video Files (*.avi)", options=QFileDialog.Options())
         if self.video_path:
             self.get_video_attributes()
             self.update_descriptors()
@@ -763,7 +786,7 @@ class MainWindow(QMainWindow):
                 if self.background_path:
                     self.update_tracking_parameters(activate = True)
                     self.update_preview_parameters(activate = True)
-                    self.update_load_tracking_parameters_buttons(activate = True)
+                    self.update_tracking_parameters_buttons(activate = True)
     def trigger_update_preview(self):
         if self.preview_background:
             self.update_preview_frame(self.background, self.background_width, self.background_height)
@@ -781,11 +804,13 @@ class MainWindow(QMainWindow):
                         self.frame = tr.subtract_background_from_frame(self.frame, self.background)
                         if self.preview_tracking_results:
                             results = tr.track_tail_in_frame([tr.apply_median_blur_to_frame(self.frame), success, self.n_tail_points, self.dist_tail_points, self.dist_eyes, self.dist_swim_bladder, self.pixel_threshold])
+                            print(results)
                             if results is not None:
                                 self.frame = tr.annotate_tracking_results_onto_frame(self.frame, results, self.colours, self.line_length)
                                 use_grayscale = False
                     elif self.preview_tracking_results:
                         results = tr.track_tail_in_frame([tr.apply_median_blur_to_frame(tr.subtract_background_from_frame(self.frame, self.background)), success, self.n_tail_points, self.dist_tail_points, self.dist_eyes, self.dist_swim_bladder, self.pixel_threshold])
+                        print(results)
                         if results is not None:
                             self.frame = tr.annotate_tracking_results_onto_frame(self.frame, results, self.colours, self.line_length)
                             use_grayscale = False
@@ -805,14 +830,14 @@ class MainWindow(QMainWindow):
         self.frame_batch_size = 50
         self.starting_frame = 0
         self.n_frames = None
-        self.line_length = 0
+        self.line_length = 5
         self.pixel_threshold = 40
         self.frame_change_threshold = 10
         self.update_tracking_parameters()
         self.trigger_update_preview()
     def trigger_load_previous_tracking_parameters(self):
         try:
-            tracking_parameters = np.load('previous_tracking_parameters.npy').item()
+            tracking_parameters = np.load('tracking_parameters.npy').item()
             self.n_tail_points = tracking_parameters['n_tail_points']
             self.dist_tail_points = tracking_parameters['dist_tail_points']
             self.dist_eyes = tracking_parameters['dist_eyes']
@@ -826,7 +851,34 @@ class MainWindow(QMainWindow):
             self.update_tracking_parameters()
             self.trigger_update_preview()
         except:
+            print('Error: tracking parameters not found.')
             self.trigger_load_default_tracking_parameters()
+    def trigger_save_current_tracking_parameters(self):
+        tracking_parameters = {'n_tail_points' : self.n_tail_points, 'dist_tail_points' : self.dist_tail_points,
+            'dist_eyes' : self.dist_eyes, 'dist_swim_bladder' : self.dist_swim_bladder,
+            'frame_batch_size' : self.frame_batch_size, 'starting_frame' : self.starting_frame,
+            'n_frames' : self.n_frames, 'line_length' : self.line_length,
+            'pixel_threshold' : self.pixel_threshold, 'frame_change_threshold' : self.frame_change_threshold}
+        np.save('tracking_parameters.npy', tracking_parameters)
+    def trigger_unload_all(self):
+        if self.preview_background_checkbox.isChecked():
+            self.preview_background_checkbox.setChecked(False)
+        if self.preview_background_subtracted_frame_checkbox.isChecked():
+            self.preview_background_subtracted_frame_checkbox.setChecked(False)
+        if self.preview_tracking_results_checkbox.isChecked():
+            self.preview_tracking_results_checkbox.setChecked(False)
+        self.initialize_class_variables()
+        self.trigger_load_default_tracking_parameters()
+        self.update_descriptors()
+        self.update_preview_frame_window(clear = True)
+        self.update_preview_parameters(inactivate = True)
+        self.update_frame_window_slider(inactivate = True)
+        self.update_preview_frame_number_textbox(inactivate = True)
+        self.update_update_preview_button(inactivate = True)
+        self.update_frame_change_buttons(inactivate = True)
+        self.update_frame_window_slider_position()
+        self.update_tracking_parameters(inactivate = True)
+        self.update_tracking_parameters_buttons(inactivate = True)
 
     # Defining Check Functions
     def check_preview_frame_number_textbox(self):
@@ -934,12 +986,6 @@ class MainWindow(QMainWindow):
 
     # Defining Event Functions
     def closeEvent(self, event):
-        tracking_parameters = {'n_tail_points' : self.n_tail_points, 'dist_tail_points' : self.dist_tail_points,
-            'dist_eyes' : self.dist_eyes, 'dist_swim_bladder' : self.dist_swim_bladder,
-            'frame_batch_size' : self.frame_batch_size, 'starting_frame' : self.starting_frame,
-            'n_frames' : self.n_frames, 'line_length' : self.line_length,
-            'pixel_threshold' : self.pixel_threshold, 'frame_change_threshold' : self.frame_change_threshold}
-        np.save('previous_tracking_parameters.npy', tracking_parameters)
         event.accept()
 
 if __name__ == '__main__':

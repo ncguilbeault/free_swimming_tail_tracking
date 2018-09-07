@@ -1,6 +1,7 @@
 '''Software Written by Nicholas Guilbeault 2018'''
 
 import free_swimming_tail_tracking as tr
+import numpy as np
 
 # Create the video path.
 video_path = "C:\\Users\\User1\\Desktop\\Video1.avi"
@@ -13,6 +14,18 @@ colours =    [  (0, 0, 255),     (0, 127, 255),  (0, 255, 255),  (0, 255, 127), 
                 (255, 255, 0),  (255, 0, 0),    (255, 0, 127),  (147, 20, 255), (139, 139, 0),
                 (49, 191, 114)
             ]
+# If tracking parameters were saved using GUI, load tracking parameters.
+tracking_parameters = np.load('tracking_parameters.npy').item()
+n_tail_points = tracking_parameters['n_tail_points']
+dist_tail_points = tracking_parameters['dist_tail_points']
+dist_eyes = tracking_parameters['dist_eyes']
+dist_swim_bladder = tracking_parameters['dist_swim_bladder']
+frame_batch_size = tracking_parameters['frame_batch_size']
+starting_frame = tracking_parameters['starting_frame']
+n_frames = tracking_parameters['n_frames']
+line_length = tracking_parameters['line_length']
+pixel_threshold = tracking_parameters['pixel_threshold']
+frame_change_threshold = tracking_parameters['frame_change_threshold']
 
 # Set the number of tail points to calculate.
 n_tail_points = 7
@@ -24,7 +37,6 @@ dist_eyes = 4
 dist_swim_bladder = 12
 # Set the threshold at which to determine whether or not to process the frame (there must be a pixel in the frame that is greater than the threshold in order for the algorithm to process the frame).
 pixel_threshold = 40
-
 # Set the line length that will be used for drawing the heading angle and eye angles.
 line_length = 4
 

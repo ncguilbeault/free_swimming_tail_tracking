@@ -525,7 +525,10 @@ def track_tail_in_frame(tracking_params):
                         tail_angle = np.arctan2(tail_point_coords[m - 1][0] - tail_point_coords[m - 2][0], tail_point_coords[m - 1][1] - tail_point_coords[m - 2][1])
                     # Calculate the next set of tail coordinates.
                     tail_point_coords[m] = calculate_next_coords(tail_point_coords[m - 1], dist_tail_points, frame, angle = tail_angle)
-        return np.array([np.array(first_eye_coords), np.array(second_eye_coords), np.array(heading_coords), np.array(body_coords), heading_angle, np.array(tail_point_coords)])
+        tracking_results = np.array([np.array(first_eye_coords), np.array(second_eye_coords), np.array(heading_coords), np.array(body_coords), heading_angle, np.array(tail_point_coords)])
+        if np.isnan(tracking_results).any():
+            tracking_results = None
+        return tracking_results
     except:
         return None
 
@@ -1020,9 +1023,9 @@ def track_video(video_path, colours, n_tail_points, dist_tail_points, dist_eyes,
                 }
 
     # Create a path that will contain all of the results from tracking.
-    data_path = "{0}\\{1}_results.npz".format(save_path, os.path.basename(video_path)[:-4])
+    data_path = "{0}\\{1}_results.npy".format(save_path, os.path.basename(video_path)[:-4])
 
     # Save the results to a npz file.
-    np.savez(data_path, data = results)
+    np.save(data_path, results)
 
     print('Total processing time: {0} seconds.'.format(time.time() - t0))
