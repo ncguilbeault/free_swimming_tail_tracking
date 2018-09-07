@@ -35,6 +35,8 @@ class MainWindow(QMainWindow):
         self.add_preview_parameters_to_window()
         self.add_tracking_parameters_window()
         self.add_tracking_parameters_to_window()
+        self.add_load_tracking_parameters_buttons()
+        self.trigger_load_default_tracking_parameters()
         self.setMenuBar(self.menubar)
         self.setStatusBar(self.statusbar)
         self.setWindowTitle('Free Swimming Tail Tracking')
@@ -70,13 +72,6 @@ class MainWindow(QMainWindow):
         self.line_length = 0
         self.pixel_threshold = 100
         self.frame_change_threshold = 10
-        self.colours = []
-    def load_optimal_tracking_parameters(self):
-        self.n_tail_points = 7
-        self.dist_tail_points = 5
-        self.dist_eyes = 4
-        self.dist_swim_bladder = 12
-        self.pixel_threshold = 40
         self.colours = [(0, 0, 255), (0, 127, 255), (0, 255, 255),
             (0, 255, 127), (0, 255, 0), (255, 255, 0),
             (255, 0, 0), (255, 0, 127), (147, 20, 255),
@@ -262,9 +257,12 @@ class MainWindow(QMainWindow):
         self.preview_frame_number_textbox.returnPressed.connect(self.check_preview_frame_number_textbox)
         self.update_preview_frame_number_textbox(inactivate = True)
     def add_update_preview_button(self):
+        font = QFont()
+        font.setPointSize(10)
         self.update_preview_button = QPushButton('Update Preview', self)
         self.update_preview_button.move(5, 1090)
         self.update_preview_button.resize(245, 50)
+        self.update_preview_button.setFont(font)
         self.update_preview_button.clicked.connect(self.check_preview_frame_number_textbox)
         self.update_update_preview_button(inactivate = True)
     def add_frame_change_buttons(self):
@@ -512,6 +510,21 @@ class MainWindow(QMainWindow):
         self.tracking_frame_change_threshold_textbox.setFont(font)
         self.tracking_frame_change_threshold_textbox.returnPressed.connect(self.check_tracking_frame_change_threshold_textbox)
         self.update_tracking_parameters(inactivate = True)
+    def add_load_tracking_parameters_buttons(self):
+        font = QFont()
+        font.setPointSize(10)
+        self.load_default_tracking_parameters_button = QPushButton('Load Default Tracking Parameters', self)
+        self.load_default_tracking_parameters_button.move(1800, 500)
+        self.load_default_tracking_parameters_button.resize(400, 100)
+        self.load_default_tracking_parameters_button.setFont(font)
+        self.load_default_tracking_parameters_button.clicked.connect(self.trigger_load_default_tracking_parameters)
+
+        self.load_previous_tracking_parameters_button = QPushButton('Load Previous Tracking Parameters', self)
+        self.load_previous_tracking_parameters_button.move(1800, 610)
+        self.load_previous_tracking_parameters_button.resize(400, 100)
+        self.load_previous_tracking_parameters_button.setFont(font)
+        self.load_previous_tracking_parameters_button.clicked.connect(self.trigger_load_previous_tracking_parameters)
+        self.update_load_tracking_parameters_buttons(inactivate = True)
 
     # Defining Update Functions
     def update_statusbar_message(self):
@@ -690,6 +703,17 @@ class MainWindow(QMainWindow):
             self.tracking_pixel_threshold_textbox.setText('{0}'.format(self.pixel_threshold))
         if self.tracking_frame_change_threshold_textbox.isEnabled():
             self.tracking_frame_change_threshold_textbox.setText('{0}'.format(self.frame_change_threshold))
+    def update_load_tracking_parameters_buttons(self, activate = False, inactivate = False):
+        if activate:
+            if not self.load_default_tracking_parameters_button.isEnabled():
+                self.load_default_tracking_parameters_button.setEnabled(True)
+            if not self.load_previous_tracking_parameters_button.isEnabled():
+                self.load_previous_tracking_parameters_button.setEnabled(True)
+        if inactivate:
+            if self.load_default_tracking_parameters_button.isEnabled():
+                self.load_default_tracking_parameters_button.setEnabled(False)
+            if self.load_previous_tracking_parameters_button.isEnabled():
+                self.load_previous_tracking_parameters_button.setEnabled(False)
 
     # Defining Trigger Functions
     def trigger_save_background(self):
@@ -720,6 +744,7 @@ class MainWindow(QMainWindow):
             if self.video_path:
                 self.update_preview_parameters(activate = True)
                 self.update_tracking_parameters(activate = True)
+                self.update_load_tracking_parameters_buttons(activate = True)
             else:
                 self.update_preview_parameters(activate_preview_background = True)
     def trigger_open_video(self):
@@ -738,6 +763,7 @@ class MainWindow(QMainWindow):
                 if self.background_path:
                     self.update_tracking_parameters(activate = True)
                     self.update_preview_parameters(activate = True)
+                    self.update_load_tracking_parameters_buttons(activate = True)
     def trigger_update_preview(self):
         if self.preview_background:
             self.update_preview_frame(self.background, self.background_width, self.background_height)
@@ -745,6 +771,7 @@ class MainWindow(QMainWindow):
             self.update_frame_window_slider(inactivate = True)
             self.update_preview_frame_number_textbox(inactivate = True)
             self.update_update_preview_button(inactivate = True)
+            self.update_frame_change_buttons(inactivate = True)
         else:
             if self.video_path is not None:
                 success, self.frame = tr.load_frame_into_memory(self.video_path, self.frame_number - 1)
@@ -754,19 +781,52 @@ class MainWindow(QMainWindow):
                         self.frame = tr.subtract_background_from_frame(self.frame, self.background)
                         if self.preview_tracking_results:
                             results = tr.track_tail_in_frame([tr.apply_median_blur_to_frame(self.frame), success, self.n_tail_points, self.dist_tail_points, self.dist_eyes, self.dist_swim_bladder, self.pixel_threshold])
-                            self.frame = tr.annotate_tracking_results_onto_frame(self.frame, results, self.colours, self.line_length)
-                            use_grayscale = False
+                            if results is not None:
+                                self.frame = tr.annotate_tracking_results_onto_frame(self.frame, results, self.colours, self.line_length)
+                                use_grayscale = False
                     elif self.preview_tracking_results:
                         results = tr.track_tail_in_frame([tr.apply_median_blur_to_frame(tr.subtract_background_from_frame(self.frame, self.background)), success, self.n_tail_points, self.dist_tail_points, self.dist_eyes, self.dist_swim_bladder, self.pixel_threshold])
-                        self.frame = tr.annotate_tracking_results_onto_frame(self.frame, results, self.colours, self.line_length)
-                        use_grayscale = False
+                        if results is not None:
+                            self.frame = tr.annotate_tracking_results_onto_frame(self.frame, results, self.colours, self.line_length)
+                            use_grayscale = False
                     self.update_preview_frame(self.frame, self.video_frame_width, self.video_frame_height, grayscale = use_grayscale)
                     self.update_preview_frame_window()
                     self.update_frame_window_slider(activate = True)
                     self.update_preview_frame_number_textbox(activate = True)
                     self.update_update_preview_button(activate = True)
+                    self.update_frame_change_buttons(activate = True)
             else:
                 self.update_preview_frame_window(clear = True)
+    def trigger_load_default_tracking_parameters(self):
+        self.n_tail_points = 7
+        self.dist_tail_points = 5
+        self.dist_eyes = 4
+        self.dist_swim_bladder = 12
+        self.frame_batch_size = 50
+        self.starting_frame = 0
+        self.n_frames = None
+        self.line_length = 0
+        self.pixel_threshold = 40
+        self.frame_change_threshold = 10
+        self.update_tracking_parameters()
+        self.trigger_update_preview()
+    def trigger_load_previous_tracking_parameters(self):
+        try:
+            tracking_parameters = np.load('previous_tracking_parameters.npy').item()
+            self.n_tail_points = tracking_parameters['n_tail_points']
+            self.dist_tail_points = tracking_parameters['dist_tail_points']
+            self.dist_eyes = tracking_parameters['dist_eyes']
+            self.dist_swim_bladder = tracking_parameters['dist_swim_bladder']
+            self.frame_batch_size = tracking_parameters['frame_batch_size']
+            self.starting_frame = tracking_parameters['starting_frame']
+            self.n_frames = tracking_parameters['n_frames']
+            self.line_length = tracking_parameters['line_length']
+            self.pixel_threshold = tracking_parameters['pixel_threshold']
+            self.frame_change_threshold = tracking_parameters['frame_change_threshold']
+            self.update_tracking_parameters()
+            self.trigger_update_preview()
+        except:
+            self.trigger_load_default_tracking_parameters()
 
     # Defining Check Functions
     def check_preview_frame_number_textbox(self):
@@ -874,6 +934,12 @@ class MainWindow(QMainWindow):
 
     # Defining Event Functions
     def closeEvent(self, event):
+        tracking_parameters = {'n_tail_points' : self.n_tail_points, 'dist_tail_points' : self.dist_tail_points,
+            'dist_eyes' : self.dist_eyes, 'dist_swim_bladder' : self.dist_swim_bladder,
+            'frame_batch_size' : self.frame_batch_size, 'starting_frame' : self.starting_frame,
+            'n_frames' : self.n_frames, 'line_length' : self.line_length,
+            'pixel_threshold' : self.pixel_threshold, 'frame_change_threshold' : self.frame_change_threshold}
+        np.save('previous_tracking_parameters.npy', tracking_parameters)
         event.accept()
 
 if __name__ == '__main__':
