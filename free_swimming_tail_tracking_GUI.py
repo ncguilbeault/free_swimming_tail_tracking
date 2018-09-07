@@ -8,7 +8,7 @@ import cv2
 import numpy as np
 import free_swimming_tail_tracking as tr
 
-from PyQt5.QtWidgets import QColorDialog, QApplication, QSlider, QWidget, QDesktopWidget, QTextEdit, QAction, QFileDialog, QMainWindow, QPushButton, QVBoxLayout, QLineEdit, QCheckBox, QLabel, QStatusBar, QMenuBar, QSizePolicy, QHBoxLayout, QFrame, QScrollArea, QAbstractScrollArea
+from PyQt5.QtWidgets import QColorDialog, QApplication, QSlider, QWidget, QDesktopWidget, QTextEdit, QAction, QFileDialog, QMainWindow, QPushButton, QVBoxLayout, QLineEdit, QCheckBox, QLabel, QStatusBar, QMenuBar, QSizePolicy, QHBoxLayout, QFrame, QScrollArea
 from PyQt5.QtGui import QPixmap, QColor, QFont, QImage
 from PyQt5.QtCore import Qt, QEvent
 
@@ -38,8 +38,8 @@ class MainWindow(QMainWindow):
         self.setMenuBar(self.menubar)
         self.setStatusBar(self.statusbar)
         self.setWindowTitle('Free Swimming Tail Tracking')
-        # self.setWindowState(Qt.WindowMaximized)
-        # self.show()
+        self.setWindowState(Qt.WindowMaximized)
+        self.show()
     def initialize_class_variables(self):
         self.video_path = None
         self.video_path_basename = None
@@ -794,11 +794,5 @@ class MainWindow(QMainWindow):
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
-    scrollArea = QScrollArea()
     ex = MainWindow()
-    scrollArea.setWidget(ex)
-    scrollArea.setWidgetResizable(True)
-    # scrollArea.setWindowState(Qt.WindowMaximized)
-    scrollArea.setSizeAdjustPolicy(QAbstractScrollArea.AdjustToContents)
-    scrollArea.show()
     sys.exit(app.exec_())
