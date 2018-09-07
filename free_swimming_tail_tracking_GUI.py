@@ -9,8 +9,8 @@ import numpy as np
 import free_swimming_tail_tracking as tr
 
 from PyQt5.QtWidgets import QColorDialog, QApplication, QSlider, QWidget, QDesktopWidget, QTextEdit, QAction, QFileDialog, QMainWindow, QPushButton, QVBoxLayout, QLineEdit, QCheckBox, QLabel, QStatusBar, QMenuBar, QSizePolicy, QHBoxLayout, QFrame, QScrollArea
-from PyQt5.QtGui import QPixmap, QColor, QFont, QImage
-from PyQt5.QtCore import Qt, QEvent
+from PyQt5.QtGui import QPixmap, QColor, QFont, QImage, QIcon
+from PyQt5.QtCore import Qt, QEvent, QSize
 
 class MainWindow(QMainWindow):
 
@@ -31,6 +31,7 @@ class MainWindow(QMainWindow):
         self.add_frame_window_slider()
         self.add_preview_frame_number_textbox()
         self.add_update_preview_button()
+        self.add_frame_change_buttons()
         self.add_preview_parameters_window()
         self.add_preview_parameters_to_window()
         self.add_tracking_parameters_window()
@@ -244,7 +245,7 @@ class MainWindow(QMainWindow):
         self.frame_window_slider.setEnabled(False)
         self.frame_window_slider.setTickInterval(0)
         self.frame_window_slider.setSingleStep(0)
-        self.frame_window_slider.sliderMoved.connect(self.trigger_moved_frame_window_slider)
+        self.frame_window_slider.sliderMoved.connect(self.check_frame_window_slider_moved)
         self.update_frame_window_slider(inactivate = True)
     def add_preview_frame_number_textbox(self):
         font = QFont()
@@ -268,6 +269,39 @@ class MainWindow(QMainWindow):
         self.update_preview_button.resize(245, 50)
         self.update_preview_button.clicked.connect(self.check_preview_frame_number_textbox)
         self.update_update_preview_button(inactivate = True)
+    def add_frame_change_buttons(self):
+        self.large_frame_decrease_button = QPushButton(self)
+        self.large_frame_decrease_button.setIcon(QIcon('button_icon_1.png'))
+        self.large_frame_decrease_button.setIconSize(QSize(76, 76))
+        self.large_frame_decrease_button.move(260, 1060)
+        self.large_frame_decrease_button.resize(80, 80)
+        self.large_frame_decrease_button.setEnabled(False)
+        self.large_frame_decrease_button.clicked.connect(self.check_large_frame_decrease_button)
+
+        self.small_frame_decrease_button = QPushButton(self)
+        self.small_frame_decrease_button.setIcon(QIcon('button_icon_2.png'))
+        self.small_frame_decrease_button.setIconSize(QSize(76, 76))
+        self.small_frame_decrease_button.move(345, 1060)
+        self.small_frame_decrease_button.resize(80, 80)
+        self.small_frame_decrease_button.setEnabled(False)
+        self.small_frame_decrease_button.clicked.connect(self.check_small_frame_decrease_button)
+
+        self.small_frame_increase_button = QPushButton(self)
+        self.small_frame_increase_button.setIcon(QIcon('button_icon_3.png'))
+        self.small_frame_increase_button.setIconSize(QSize(76, 76))
+        self.small_frame_increase_button.move(430, 1060)
+        self.small_frame_increase_button.resize(80, 80)
+        self.small_frame_increase_button.setEnabled(False)
+        self.small_frame_increase_button.clicked.connect(self.check_small_frame_increase_button)
+
+        self.large_frame_increase_button = QPushButton(self)
+        self.large_frame_increase_button.setIcon(QIcon('button_icon_4.png'))
+        self.large_frame_increase_button.setIconSize(QSize(76, 76))
+        self.large_frame_increase_button.move(515, 1060)
+        self.large_frame_increase_button.resize(80, 80)
+        self.large_frame_increase_button.setEnabled(False)
+        self.large_frame_increase_button.clicked.connect(self.check_large_frame_increase_button)
+        self.update_frame_change_buttons(inactivate = True)
     def add_preview_parameters_window(self):
         font = QFont()
         font.setPointSize(18)
@@ -556,6 +590,25 @@ class MainWindow(QMainWindow):
         if inactivate:
             if self.update_preview_button.isEnabled():
                 self.update_preview_button.setEnabled(False)
+    def update_frame_change_buttons(self, activate = False, inactivate = False):
+        if activate:
+            if not self.large_frame_decrease_button.isEnabled():
+                self.large_frame_decrease_button.setEnabled(True)
+            if not self.small_frame_decrease_button.isEnabled():
+                self.small_frame_decrease_button.setEnabled(True)
+            if not self.small_frame_increase_button.isEnabled():
+                self.small_frame_increase_button.setEnabled(True)
+            if not self.large_frame_increase_button.isEnabled():
+                self.large_frame_increase_button.setEnabled(True)
+        if inactivate:
+            if self.large_frame_decrease_button.isEnabled():
+                self.large_frame_decrease_button.setEnabled(False)
+            if self.small_frame_decrease_button.isEnabled():
+                self.small_frame_decrease_button.setEnabled(False)
+            if self.small_frame_increase_button.isEnabled():
+                self.small_frame_increase_button.setEnabled(False)
+            if self.large_frame_increase_button.isEnabled():
+                self.large_frame_increase_button.setEnabled(False)
     def update_frame_window_slider_position(self):
         self.frame_window_slider.setValue(self.frame_number)
     def update_tracking_parameters(self, activate = False, inactivate = False):
@@ -665,28 +718,10 @@ class MainWindow(QMainWindow):
                 self.update_frame_window_slider(activate = True)
                 self.update_preview_frame_number_textbox(activate = True)
                 self.update_update_preview_button(activate = True)
+                self.update_frame_change_buttons(activate = True)
                 if self.background_path:
                     self.update_tracking_parameters(activate = True)
                     self.update_preview_parameters(activate = True)
-    def trigger_moved_frame_window_slider(self):
-        self.frame_number = int(self.frame_window_slider.sliderPosition())
-        if self.video_path is not None:
-            success, self.frame = tr.load_frame_into_memory(self.video_path, self.frame_number - 1)
-            if success and self.frame is not None:
-                use_grayscale = True
-                if self.preview_background_subtracted_frame:
-                    self.frame = tr.subtract_background_from_frame(self.frame, self.background)
-                    if self.preview_tracking_results:
-                        results = tr.track_tail_in_frame([tr.apply_median_blur_to_frame(self.frame), success, self.n_tail_points, self.dist_tail_points, self.dist_eyes, self.dist_swim_bladder, self.pixel_threshold])
-                        self.frame = tr.annotate_tracking_results_onto_frame(self.frame, results, self.colours, self.line_length)
-                        use_grayscale = False
-                elif self.preview_tracking_results:
-                    results = tr.track_tail_in_frame([tr.apply_median_blur_to_frame(tr.subtract_background_from_frame(self.frame, self.background)), success, self.n_tail_points, self.dist_tail_points, self.dist_eyes, self.dist_swim_bladder, self.pixel_threshold])
-                    self.frame = tr.annotate_tracking_results_onto_frame(self.frame, results, self.colours, self.line_length)
-                    use_grayscale = False
-                self.update_preview_frame(self.frame, self.video_frame_width, self.video_frame_height, grayscale = use_grayscale)
-                self.update_preview_frame_window()
-                self.update_preview_frame_number_textbox()
     def trigger_update_preview(self):
         if self.preview_background:
             self.update_preview_frame(self.background, self.background_width, self.background_height)
@@ -728,11 +763,34 @@ class MainWindow(QMainWindow):
                 else:
                     self.frame_number = 1
         self.trigger_update_preview()
+    def check_frame_window_slider_moved(self):
+        self.frame_number = int(self.frame_window_slider.sliderPosition())
+        self.trigger_update_preview()
     def check_preview_background_checkbox(self):
         self.preview_background = self.preview_background_checkbox.isChecked()
         self.trigger_update_preview()
     def check_preview_background_subtracted_frame_checkbox(self):
         self.preview_background_subtracted_frame = self.preview_background_subtracted_frame_checkbox.isChecked()
+        self.trigger_update_preview()
+    def check_large_frame_decrease_button(self):
+        self.frame_number -= 100
+        if self.frame_number < 1:
+            self.frame_number = 1
+        self.trigger_update_preview()
+    def check_small_frame_decrease_button(self):
+        self.frame_number -= 1
+        if self.frame_number < 1:
+            self.frame_number = 1
+        self.trigger_update_preview()
+    def check_small_frame_increase_button(self):
+        self.frame_number += 1
+        if self.frame_number > self.video_n_frames:
+            self.frame_number = self.video_n_frames
+        self.trigger_update_preview()
+    def check_large_frame_increase_button(self):
+        self.frame_number += 100
+        if self.frame_number > self.video_n_frames:
+            self.frame_number = self.video_n_frames
         self.trigger_update_preview()
     def check_preview_tracking_results_checkbox(self):
         self.preview_tracking_results = self.preview_tracking_results_checkbox.isChecked()
