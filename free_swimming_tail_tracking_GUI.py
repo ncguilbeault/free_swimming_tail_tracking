@@ -8,7 +8,7 @@ import cv2
 import numpy as np
 import free_swimming_tail_tracking as tr
 
-from PyQt5.QtWidgets import QColorDialog, QApplication, QSlider, QWidget, QDesktopWidget, QTextEdit, QAction, QFileDialog, QMainWindow, QPushButton, QVBoxLayout, QLineEdit, QCheckBox, QLabel, QStatusBar, QMenuBar, QSizePolicy, QHBoxLayout, QFrame, QScrollArea
+from PyQt5.QtWidgets import QColorDialog, QApplication, QSlider, QWidget, QDesktopWidget, QTextEdit, QAction, QFileDialog, QMainWindow, QPushButton, QVBoxLayout, QLineEdit, QCheckBox, QLabel, QStatusBar, QMenuBar, QSizePolicy, QHBoxLayout, QFrame, QScrollBar
 from PyQt5.QtGui import QPixmap, QColor, QFont, QImage, QIcon
 from PyQt5.QtCore import Qt, QEvent, QSize
 
@@ -20,7 +20,6 @@ class MainWindow(QMainWindow):
         self.initUI()
     def initUI(self):
         self.initialize_class_variables()
-        self.load_optimal_tracking_parameters()
         self.get_main_window_attributes()
         self.add_menubar()
         self.add_options_to_menubar()
@@ -52,7 +51,7 @@ class MainWindow(QMainWindow):
         self.video_frame_height = 0
         self.main_window_width = 0
         self.main_window_height = 0
-        self.frame_number = 0
+        self.frame_number = 1
         self.status_bar_message = ''
         self.background_path = None
         self.background_path_basename = None
@@ -143,7 +142,6 @@ class MainWindow(QMainWindow):
     def add_preview_frame_window(self):
         font = QFont()
         font.setPointSize(18)
-        self.preview_frame_window = QScrollArea()
         self.preview_frame_window = QLabel(self)
         self.preview_frame_window.setFrameShape(QFrame.Panel)
         self.preview_frame_window.setFrameShadow(QFrame.Sunken)
@@ -275,31 +273,41 @@ class MainWindow(QMainWindow):
         self.large_frame_decrease_button.setIconSize(QSize(76, 76))
         self.large_frame_decrease_button.move(260, 1060)
         self.large_frame_decrease_button.resize(80, 80)
-        self.large_frame_decrease_button.setEnabled(False)
         self.large_frame_decrease_button.clicked.connect(self.check_large_frame_decrease_button)
 
+        self.medium_frame_decrease_button = QPushButton(self)
+        self.medium_frame_decrease_button.setIcon(QIcon('button_icon_2.png'))
+        self.medium_frame_decrease_button.setIconSize(QSize(76, 76))
+        self.medium_frame_decrease_button.move(345, 1060)
+        self.medium_frame_decrease_button.resize(80, 80)
+        self.medium_frame_decrease_button.clicked.connect(self.check_medium_frame_decrease_button)
+
         self.small_frame_decrease_button = QPushButton(self)
-        self.small_frame_decrease_button.setIcon(QIcon('button_icon_2.png'))
+        self.small_frame_decrease_button.setIcon(QIcon('button_icon_3.png'))
         self.small_frame_decrease_button.setIconSize(QSize(76, 76))
-        self.small_frame_decrease_button.move(345, 1060)
+        self.small_frame_decrease_button.move(430, 1060)
         self.small_frame_decrease_button.resize(80, 80)
-        self.small_frame_decrease_button.setEnabled(False)
         self.small_frame_decrease_button.clicked.connect(self.check_small_frame_decrease_button)
 
         self.small_frame_increase_button = QPushButton(self)
-        self.small_frame_increase_button.setIcon(QIcon('button_icon_3.png'))
+        self.small_frame_increase_button.setIcon(QIcon('button_icon_4.png'))
         self.small_frame_increase_button.setIconSize(QSize(76, 76))
-        self.small_frame_increase_button.move(430, 1060)
+        self.small_frame_increase_button.move(515, 1060)
         self.small_frame_increase_button.resize(80, 80)
-        self.small_frame_increase_button.setEnabled(False)
         self.small_frame_increase_button.clicked.connect(self.check_small_frame_increase_button)
 
+        self.medium_frame_increase_button = QPushButton(self)
+        self.medium_frame_increase_button.setIcon(QIcon('button_icon_5.png'))
+        self.medium_frame_increase_button.setIconSize(QSize(76, 76))
+        self.medium_frame_increase_button.move(600, 1060)
+        self.medium_frame_increase_button.resize(80, 80)
+        self.medium_frame_increase_button.clicked.connect(self.check_medium_frame_increase_button)
+
         self.large_frame_increase_button = QPushButton(self)
-        self.large_frame_increase_button.setIcon(QIcon('button_icon_4.png'))
+        self.large_frame_increase_button.setIcon(QIcon('button_icon_6.png'))
         self.large_frame_increase_button.setIconSize(QSize(76, 76))
-        self.large_frame_increase_button.move(515, 1060)
+        self.large_frame_increase_button.move(685, 1060)
         self.large_frame_increase_button.resize(80, 80)
-        self.large_frame_increase_button.setEnabled(False)
         self.large_frame_increase_button.clicked.connect(self.check_large_frame_increase_button)
         self.update_frame_change_buttons(inactivate = True)
     def add_preview_parameters_window(self):
@@ -594,19 +602,27 @@ class MainWindow(QMainWindow):
         if activate:
             if not self.large_frame_decrease_button.isEnabled():
                 self.large_frame_decrease_button.setEnabled(True)
+            if not self.medium_frame_decrease_button.isEnabled():
+                self.medium_frame_decrease_button.setEnabled(True)
             if not self.small_frame_decrease_button.isEnabled():
                 self.small_frame_decrease_button.setEnabled(True)
             if not self.small_frame_increase_button.isEnabled():
                 self.small_frame_increase_button.setEnabled(True)
+            if not self.medium_frame_increase_button.isEnabled():
+                self.medium_frame_increase_button.setEnabled(True)
             if not self.large_frame_increase_button.isEnabled():
                 self.large_frame_increase_button.setEnabled(True)
         if inactivate:
             if self.large_frame_decrease_button.isEnabled():
                 self.large_frame_decrease_button.setEnabled(False)
+            if self.medium_frame_decrease_button.isEnabled():
+                self.medium_frame_decrease_button.setEnabled(False)
             if self.small_frame_decrease_button.isEnabled():
                 self.small_frame_decrease_button.setEnabled(False)
             if self.small_frame_increase_button.isEnabled():
                 self.small_frame_increase_button.setEnabled(False)
+            if self.medium_frame_increase_button.isEnabled():
+                self.medium_frame_increase_button.setEnabled(False)
             if self.large_frame_increase_button.isEnabled():
                 self.large_frame_increase_button.setEnabled(False)
     def update_frame_window_slider_position(self):
@@ -777,6 +793,11 @@ class MainWindow(QMainWindow):
         if self.frame_number < 1:
             self.frame_number = 1
         self.trigger_update_preview()
+    def check_medium_frame_decrease_button(self):
+        self.frame_number -= 10
+        if self.frame_number < 1:
+            self.frame_number = 1
+        self.trigger_update_preview()
     def check_small_frame_decrease_button(self):
         self.frame_number -= 1
         if self.frame_number < 1:
@@ -784,6 +805,11 @@ class MainWindow(QMainWindow):
         self.trigger_update_preview()
     def check_small_frame_increase_button(self):
         self.frame_number += 1
+        if self.frame_number > self.video_n_frames:
+            self.frame_number = self.video_n_frames
+        self.trigger_update_preview()
+    def check_medium_frame_increase_button(self):
+        self.frame_number += 10
         if self.frame_number > self.video_n_frames:
             self.frame_number = self.video_n_frames
         self.trigger_update_preview()
