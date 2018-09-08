@@ -804,13 +804,11 @@ class MainWindow(QMainWindow):
                         self.frame = tr.subtract_background_from_frame(self.frame, self.background)
                         if self.preview_tracking_results:
                             results = tr.track_tail_in_frame([tr.apply_median_blur_to_frame(self.frame), success, self.n_tail_points, self.dist_tail_points, self.dist_eyes, self.dist_swim_bladder, self.pixel_threshold])
-                            print(results)
                             if results is not None:
                                 self.frame = tr.annotate_tracking_results_onto_frame(self.frame, results, self.colours, self.line_length)
                                 use_grayscale = False
                     elif self.preview_tracking_results:
                         results = tr.track_tail_in_frame([tr.apply_median_blur_to_frame(tr.subtract_background_from_frame(self.frame, self.background)), success, self.n_tail_points, self.dist_tail_points, self.dist_eyes, self.dist_swim_bladder, self.pixel_threshold])
-                        print(results)
                         if results is not None:
                             self.frame = tr.annotate_tracking_results_onto_frame(self.frame, results, self.colours, self.line_length)
                             use_grayscale = False
@@ -861,12 +859,14 @@ class MainWindow(QMainWindow):
             'pixel_threshold' : self.pixel_threshold, 'frame_change_threshold' : self.frame_change_threshold}
         np.save('tracking_parameters.npy', tracking_parameters)
     def trigger_unload_all(self):
+        print(self.preview_tracking_results_checkbox.isChecked())
         if self.preview_background_checkbox.isChecked():
             self.preview_background_checkbox.setChecked(False)
         if self.preview_background_subtracted_frame_checkbox.isChecked():
             self.preview_background_subtracted_frame_checkbox.setChecked(False)
         if self.preview_tracking_results_checkbox.isChecked():
             self.preview_tracking_results_checkbox.setChecked(False)
+            print(self.preview_tracking_results_checkbox.isChecked())
         self.initialize_class_variables()
         self.trigger_load_default_tracking_parameters()
         self.update_descriptors()
