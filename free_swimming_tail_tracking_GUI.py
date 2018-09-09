@@ -8,9 +8,9 @@ import cv2
 import numpy as np
 import free_swimming_tail_tracking as tr
 
-from PyQt5.QtWidgets import QColorDialog, QApplication, QSlider, QWidget, QDesktopWidget, QTextEdit, QAction, QFileDialog, QMainWindow, QPushButton, QVBoxLayout, QLineEdit, QCheckBox, QLabel, QStatusBar, QMenuBar, QSizePolicy, QHBoxLayout, QFrame, QScrollBar
-from PyQt5.QtGui import QPixmap, QColor, QFont, QImage, QIcon
-from PyQt5.QtCore import Qt, QEvent, QSize
+from PyQt5.QtWidgets import *
+from PyQt5.QtGui import *
+from PyQt5.QtCore import *
 
 class MainWindow(QMainWindow):
 
@@ -535,6 +535,14 @@ class MainWindow(QMainWindow):
         self.save_current_tracking_parameters_button.resize(400, 100)
         self.save_current_tracking_parameters_button.setFont(font)
         self.save_current_tracking_parameters_button.clicked.connect(self.trigger_save_current_tracking_parameters)
+
+        font.setPointSize(12)
+
+        self.track_video_button = QPushButton('Track Video', self)
+        self.track_video_button.move(1700, 830)
+        self.track_video_button.resize(600, 150)
+        self.track_video_button.setFont(font)
+        self.track_video_button.clicked.connect(self.trigger_track_video)
         self.trigger_load_default_tracking_parameters()
         self.update_tracking_parameters_buttons(inactivate = True)
 
@@ -723,6 +731,8 @@ class MainWindow(QMainWindow):
                 self.load_previous_tracking_parameters_button.setEnabled(True)
             if not self.save_current_tracking_parameters_button.isEnabled():
                 self.save_current_tracking_parameters_button.setEnabled(True)
+            if not self.track_video_button.isEnabled():
+                self.track_video_button.setEnabled(True)
         if inactivate:
             if self.load_default_tracking_parameters_button.isEnabled():
                 self.load_default_tracking_parameters_button.setEnabled(False)
@@ -730,6 +740,8 @@ class MainWindow(QMainWindow):
                 self.load_previous_tracking_parameters_button.setEnabled(False)
             if self.save_current_tracking_parameters_button.isEnabled():
                 self.save_current_tracking_parameters_button.setEnabled(False)
+            if self.track_video_button.isEnabled():
+                self.track_video_button.setEnabled(False)
 
     # Defining Trigger Functions
     def trigger_save_background(self):
@@ -859,7 +871,6 @@ class MainWindow(QMainWindow):
             'pixel_threshold' : self.pixel_threshold, 'frame_change_threshold' : self.frame_change_threshold}
         np.save('tracking_parameters.npy', tracking_parameters)
     def trigger_unload_all(self):
-        print(self.preview_tracking_results_checkbox.isChecked())
         if self.preview_background_checkbox.isChecked():
             self.preview_background_checkbox.setChecked(False)
         if self.preview_background_subtracted_frame_checkbox.isChecked():
@@ -879,6 +890,10 @@ class MainWindow(QMainWindow):
         self.update_frame_window_slider_position()
         self.update_tracking_parameters(inactivate = True)
         self.update_tracking_parameters_buttons(inactivate = True)
+    def trigger_track_video(self):
+        # video_path, colours, n_tail_points, dist_tail_points, dist_eyes, dist_swim_bladder = self.video_path.copy(), self.colours.copy(), self.n_tail_points.copy(), self.dist_tail_points.copy(), self.dist_eyes.copy(), self.dist_swim_bladder.copy()
+        # self.trigger_unload_all()
+        tr.track_video(self.video_path, self.colours, self.n_tail_points, self.dist_tail_points, self.dist_eyes, self.dist_swim_bladder, n_frames = self.n_frames, starting_frame = self.starting_frame, save_path = self.save_path, background_path = self.background_path, line_length = self.line_length, video_fps = self.video_fps, pixel_threshold = self.pixel_threshold, frame_change_threshold = self.frame_change_threshold)
 
     # Defining Check Functions
     def check_preview_frame_number_textbox(self):
