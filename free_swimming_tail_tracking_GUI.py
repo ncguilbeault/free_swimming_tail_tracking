@@ -644,7 +644,6 @@ class TrackingContent(QMainWindow):
             if i % 6 == 0 and i > 0:
                 count += 1
             colour_label_pos = [1565 + count * 250, 1100 + (i * 45) - (count * 270)]
-            print(colour_label_pos)
             colour_label = QLabel(self)
             if i == len(self.colours) - 1:
                 colour_label.setText('Heading Angle: ')
@@ -680,7 +679,7 @@ class TrackingContent(QMainWindow):
             colour_button.clicked.connect(partial(self.check_colour_button, i))
             self.colour_button_list.append(colour_button)
         self.update_tracking_colour_parameters(inactivate = True)
-        self.trigger_update_colours()
+        # self.trigger_update_colours()
 
     # Defining Update Functions
     def update_statusbar_message(self):
@@ -1033,7 +1032,6 @@ class TrackingContent(QMainWindow):
             self.preview_background_subtracted_frame_checkbox.setChecked(False)
         if self.preview_tracking_results_checkbox.isChecked():
             self.preview_tracking_results_checkbox.setChecked(False)
-            print(self.preview_tracking_results_checkbox.isChecked())
         self.initialize_class_variables()
         self.trigger_load_default_tracking_parameters()
         self.update_descriptors()
@@ -1048,9 +1046,6 @@ class TrackingContent(QMainWindow):
         self.update_tracking_parameters_buttons(inactivate = True)
         self.update_tracking_colour_parameters(inactivate = True)
     def trigger_update_colours(self):
-        # a = QPushButton(self)
-        # a.move(1000, 1000)
-        # a.resize(100, 100)
         if self.n_tail_points < len(self.colours) - 3:
             for i in range(len(self.colours) - 3 - self.n_tail_points):
                 self.colour_label_list[len(self.colour_label_list) - 1].deleteLater()
@@ -1072,39 +1067,42 @@ class TrackingContent(QMainWindow):
                         self.colour_label_list[i].setText('Second Eye: ')
                 if i < len(self.colours) - 3 :
                     self.colour_label_list[i].setText('Tail Point {0}: '.format(i + 1))
+                self.colour_textbox_list[i].setText('{0}'.format(self.colours[i]))
         if self.n_tail_points > len(self.colours) - 3:
             font = QFont()
             font.setPointSize(10)
             for i in range(self.n_tail_points + 3 - len(self.colours)):
-                self.colours.insert(i + self.n_tail_points, (0, 0, 0))
-                count = int((i + len(self.colours)) / 6)
-                colour_label_pos = [1565 + count * 250, 1100 + ((i + len(self.colours)) * 45) - (count * 270)]
+                self.colours.insert(i + self.n_tail_points - 1, (0, 0, 0))
+                count = int((i + len(self.colours) - 1) / 6)
+                colour_label_pos = [1565 + count * 250, 1100 + ((i + len(self.colours) - 1) * 45) - (count * 270)]
                 colour_label = QLabel(self)
                 colour_label.move(colour_label_pos[0], colour_label_pos[1])
                 colour_label.resize(100, 20)
                 colour_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
                 colour_label.setText('sdfsdf')
                 colour_label.setFont(font)
+                colour_label.show()
                 self.colour_label_list.append(colour_label)
-                colour_textbox_pos = [1665 + count * 250, 1100 + ((i + len(self.colours)) * 45) - (count * 270)]
+                colour_textbox_pos = [1665 + count * 250, 1100 + ((i + len(self.colours) - 1) * 45) - (count * 270)]
                 colour_textbox = QLineEdit(self)
                 colour_textbox.move(colour_textbox_pos[0], colour_textbox_pos[1])
                 colour_textbox.resize(120, 20)
                 colour_textbox.setAlignment(Qt.AlignHCenter | Qt.AlignVCenter)
                 colour_textbox.setFont(font)
                 colour_textbox.setEnabled(False)
+                colour_textbox.show()
                 self.colour_textbox_list.append(colour_textbox)
-                colour_button_pos = [1795 + count * 250, 1100 + ((i + len(self.colours)) * 45) - (count * 270)]
+                colour_button_pos = [1795 + count * 250, 1100 + ((i + len(self.colours) - 1) * 45) - (count * 270)]
                 colour_button = QPushButton(self)
                 colour_button.setIcon(QIcon('colour_wheel.jpg'))
                 colour_button.setIconSize(QSize(18, 18))
                 colour_button.move(colour_button_pos[0], colour_button_pos[1])
                 colour_button.resize(20, 20)
-                colour_button.clicked.connect(partial(self.check_colour_button, i))
+                colour_button.clicked.connect(partial(self.check_colour_button, i + self.n_tail_points - 1))
+                colour_button.show()
                 self.colour_button_list.append(colour_button)
             for i in range(len(self.colours)):
                 if i == len(self.colours) - 1:
-                    print(i)
                     self.colour_label_list[i].setText('Heading Angle: ')
                 if i == len(self.colours) - 2:
                     self.colour_label_list[i].setText('First Eye: ')
@@ -1115,6 +1113,7 @@ class TrackingContent(QMainWindow):
                         self.colour_label_list[i].setText('Second Eye: ')
                 if i < len(self.colours) - 3 :
                     self.colour_label_list[i].setText('Tail Point {0}: '.format(i + 1))
+                self.colour_textbox_list[i].setText('{0}'.format(self.colours[i]))
 
     # Defining Check Functions
     def check_preview_frame_number_textbox(self):
@@ -1227,8 +1226,8 @@ class TrackingContent(QMainWindow):
     def check_colour_button(self, id):
         colour = QColorDialog.getColor().getRgb()[0:3]
         colour = (colour[0], colour[1], colour[2])
-        self.colour_textbox_list[id].setText('{0}'.format(colour))
         self.colours[id] = colour
+        self.trigger_update_colours()
         self.trigger_update_preview()
 
     # Defining Event Functions
