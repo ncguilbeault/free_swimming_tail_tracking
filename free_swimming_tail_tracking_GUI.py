@@ -7,6 +7,7 @@ import subprocess
 import cv2
 import numpy as np
 import free_swimming_tail_tracking as tr
+from functools import partial
 
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
@@ -14,16 +15,101 @@ from PyQt5.QtCore import *
 
 class MainWindow(QMainWindow):
 
+    def __init__(self, parent = None):
+        super(MainWindow, self).__init__(parent)
+        self.get_main_window_attributes()
+        self.add_menubar()
+        self.add_options_to_menubar()
+        self.tracking_tab = TrackingTab()
+        self.setCentralWidget(self.tracking_tab)
+        self.setMenuBar(self.menubar)
+        self.setWindowTitle('Free Swimming Tail Tracking')
+        self.setWindowState(Qt.WindowMaximized)
+        self.show()
+    def add_menubar(self):
+        self.menubar = QMenuBar()
+        self.menubar.resize(self.main_window_width, self.menubar.height())
+    def get_main_window_attributes(self):
+        self.main_window_width = QDesktopWidget().availableGeometry().width()
+        self.main_window_height = QDesktopWidget().availableGeometry().height()
+    def add_options_to_menubar(self):
+        self.options_menu = self.menubar.addMenu('&Options')
+
+        self.open_video_action = QAction('&Open Video', self)
+        self.open_video_action.setShortcut('Ctrl+O')
+        self.open_video_action.setStatusTip('Open Video')
+        self.open_video_action.triggered.connect(self.trigger_open_video)
+        self.options_menu.addAction(self.open_video_action)
+
+        self.select_save_path_action = QAction('&Select Save Path', self)
+        self.select_save_path_action.setShortcut('Ctrl+P')
+        self.select_save_path_action.setStatusTip('Select Save Path')
+        self.select_save_path_action.triggered.connect(self.trigger_select_save_path)
+        self.options_menu.addAction(self.select_save_path_action)
+
+        self.load_background_action = QAction('&Load Background', self)
+        self.load_background_action.setShortcut('Ctrl+L')
+        self.load_background_action.setStatusTip('Load Background')
+        self.load_background_action.triggered.connect(self.trigger_load_background)
+        self.options_menu.addAction(self.load_background_action)
+
+        self.calculate_background_action = QAction('&Calculate Background', self)
+        self.calculate_background_action.setShortcut('Ctrl+B')
+        self.calculate_background_action.setStatusTip('Calculate Background')
+        self.calculate_background_action.triggered.connect(self.trigger_calculate_background)
+        self.options_menu.addAction(self.calculate_background_action)
+
+        self.save_background_action = QAction('&Save Background', self)
+        self.save_background_action.setShortcut('Ctrl+S')
+        self.save_background_action.setStatusTip('Save Background')
+        self.save_background_action.triggered.connect(self.trigger_save_background)
+        self.options_menu.addAction(self.save_background_action)
+
+        self.unload_all_action = QAction('&Unload All', self)
+        self.unload_all_action.setShortcut('Ctrl+U')
+        self.unload_all_action.setStatusTip('Unload All Things From Memory')
+        self.unload_all_action.triggered.connect(self.trigger_unload_all)
+        self.options_menu.addAction(self.unload_all_action)
+
+    def trigger_save_background(self):
+        self.tracking_tab.tracking_tab.tracking_content.trigger_save_background()
+    def trigger_calculate_background(self):
+        self.tracking_tab.tracking_tab.tracking_content.trigger_calculate_background()
+    def trigger_select_save_path(self):
+        self.tracking_tab.tracking_tab.tracking_content.trigger_select_save_path()
+    def trigger_load_background(self):
+        self.tracking_tab.tracking_tab.tracking_content.trigger_load_background()
+    def trigger_open_video(self):
+        self.tracking_tab.tracking_tab.tracking_content.trigger_open_video()
+    def trigger_unload_all(self):
+        self.tracking_tab.tracking_tab.tracking_content.trigger_unload_all()
+
+class TrackingTab(QTabWidget):
+
+    def __init__(self, parent = None):
+        super(TrackingTab, self).__init__(parent)
+        self.tracking_tab = TrackingScroll()
+        self.addTab(self.tracking_tab,"Tracking")
+
+class TrackingScroll(QScrollArea):
+
+    def __init__(self, parent = None):
+        super(TrackingScroll, self).__init__(parent)
+        self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
+        self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
+        self.tracking_content = TrackingContent()
+        self.setWidget(self.tracking_content)
+        # self.setWidgetResizable(True)
+
+class TrackingContent(QMainWindow):
+
     # Defining Initialization Functions
     def __init__(self):
-        super(MainWindow, self).__init__()
+        super(TrackingContent, self).__init__()
         self.initUI()
     def initUI(self):
         self.initialize_class_variables()
         self.get_main_window_attributes()
-        self.add_menubar()
-        self.add_options_to_menubar()
-        self.add_statusbar()
         self.add_preview_frame_window()
         self.add_descriptors_window()
         self.add_descriptors_to_window()
@@ -36,10 +122,10 @@ class MainWindow(QMainWindow):
         self.add_tracking_parameters_window()
         self.add_tracking_parameters_to_window()
         self.add_tracking_parameters_buttons()
-        self.setMenuBar(self.menubar)
-        self.setStatusBar(self.statusbar)
+        self.add_colour_parameters_window()
+        self.add_colour_parameters_to_window()
         self.setWindowTitle('Free Swimming Tail Tracking')
-        self.setWindowState(Qt.WindowMaximized)
+        self.resize(2560, 1400)
         self.show()
     def initialize_class_variables(self):
         self.video_path = None
@@ -65,16 +151,13 @@ class MainWindow(QMainWindow):
         self.dist_tail_points = 0
         self.dist_eyes = 0
         self.dist_swim_bladder = 0
-        self.frame_batch_size = 50
+        self.frame_batch_size = 0
         self.starting_frame = 0
         self.n_frames = None
         self.line_length = 0
-        self.pixel_threshold = 100
-        self.frame_change_threshold = 10
-        self.colours = [(0, 0, 255), (0, 127, 255), (0, 255, 255),
-            (0, 255, 127), (0, 255, 0), (255, 255, 0),
-            (255, 0, 0), (255, 0, 127), (147, 20, 255),
-            (139, 139, 0), (49, 191, 114)]
+        self.pixel_threshold = 0
+        self.frame_change_threshold = 0
+        self.colours = []
 
     # Defining Get Functions
     def get_main_window_attributes(self):
@@ -93,14 +176,6 @@ class MainWindow(QMainWindow):
         self.background_height, self.background_width = self.background.shape
 
     # Defining Add Functions
-    def add_menubar(self):
-        self.menubar = QMenuBar()
-        self.menubar.resize(self.main_window_width, self.menubar.height())
-    def add_statusbar(self):
-        self.statusbar = QStatusBar()
-        self.statusbar_message = 'Welcome to the free swimming tail tracking GUI. Begin by openning a video.'
-        self.statusbar.showMessage(self.statusbar_message)
-        self.statusbar.messageChanged.connect(self.update_statusbar_message)
     def add_options_to_menubar(self):
         self.options_menu = self.menubar.addMenu('&Options')
 
@@ -168,70 +243,70 @@ class MainWindow(QMainWindow):
         font.setPointSize(10)
         self.video_path_folder_descriptor = QLabel(self)
         self.video_path_folder_descriptor.move(1025, 100)
-        self.video_path_folder_descriptor.resize(490, 20)
+        self.video_path_folder_descriptor.resize(480, 20)
         self.video_path_folder_descriptor.setText('Video Folder: {0}'.format(self.video_path_folder))
         self.video_path_folder_descriptor.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
         self.video_path_folder_descriptor.setFont(font)
 
         self.video_path_basename_descriptor = QLabel(self)
         self.video_path_basename_descriptor.move(1025, 140)
-        self.video_path_basename_descriptor.resize(490, 20)
+        self.video_path_basename_descriptor.resize(480, 20)
         self.video_path_basename_descriptor.setText('Video Filename: {0}'.format(self.video_path_basename))
         self.video_path_basename_descriptor.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
         self.video_path_basename_descriptor.setFont(font)
 
         self.video_n_frames_descriptor = QLabel(self)
         self.video_n_frames_descriptor.move(1025, 180)
-        self.video_n_frames_descriptor.resize(490, 20)
+        self.video_n_frames_descriptor.resize(480, 20)
         self.video_n_frames_descriptor.setText('Video Total Frames: {0}'.format(self.video_n_frames))
         self.video_n_frames_descriptor.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
         self.video_n_frames_descriptor.setFont(font)
 
         self.video_fps_descriptor = QLabel(self)
         self.video_fps_descriptor.move(1025, 220)
-        self.video_fps_descriptor.resize(490, 20)
+        self.video_fps_descriptor.resize(480, 20)
         self.video_fps_descriptor.setText('Video FPS: {0}'.format(self.video_fps))
         self.video_fps_descriptor.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
         self.video_fps_descriptor.setFont(font)
 
         self.video_format_descriptor = QLabel(self)
         self.video_format_descriptor.move(1025, 260)
-        self.video_format_descriptor.resize(490, 20)
+        self.video_format_descriptor.resize(480, 20)
         self.video_format_descriptor.setText('Video Format: {0}'.format(self.video_format))
         self.video_format_descriptor.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
         self.video_format_descriptor.setFont(font)
 
         self.frame_width_descriptor = QLabel(self)
         self.frame_width_descriptor.move(1025, 300)
-        self.frame_width_descriptor.resize(490, 20)
+        self.frame_width_descriptor.resize(480, 20)
         self.frame_width_descriptor.setText('Frame Width: {0}'.format(self.video_frame_width))
         self.frame_width_descriptor.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
         self.frame_width_descriptor.setFont(font)
 
         self.frame_height_descriptor = QLabel(self)
         self.frame_height_descriptor.move(1025, 340)
-        self.frame_height_descriptor.resize(490, 20)
+        self.frame_height_descriptor.resize(480, 20)
         self.frame_height_descriptor.setText('Frame Height: {0}'.format(self.video_frame_height))
         self.frame_height_descriptor.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
         self.frame_height_descriptor.setFont(font)
 
         self.background_path_folder_descriptor = QLabel(self)
         self.background_path_folder_descriptor.move(1025, 380)
-        self.background_path_folder_descriptor.resize(490, 20)
+        self.background_path_folder_descriptor.resize(480, 20)
         self.background_path_folder_descriptor.setText('Background Folder: {0}'.format(self.background_path_folder))
         self.background_path_folder_descriptor.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
         self.background_path_folder_descriptor.setFont(font)
 
         self.background_path_basename_descriptor = QLabel(self)
         self.background_path_basename_descriptor.move(1025, 420)
-        self.background_path_basename_descriptor.resize(490, 20)
+        self.background_path_basename_descriptor.resize(480, 20)
         self.background_path_basename_descriptor.setText('Background Filename: {0}'.format(self.background_path_basename))
         self.background_path_basename_descriptor.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
         self.background_path_basename_descriptor.setFont(font)
 
         self.save_path_descriptor = QLabel(self)
         self.save_path_descriptor.move(1025, 460)
-        self.save_path_descriptor.resize(490, 20)
+        self.save_path_descriptor.resize(480, 20)
         self.save_path_descriptor.setText('Save Path: {0}'.format(self.save_path))
         self.save_path_descriptor.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
         self.save_path_descriptor.setFont(font)
@@ -321,7 +396,7 @@ class MainWindow(QMainWindow):
         self.preview_parameters_window.setFrameShadow(QFrame.Sunken)
         self.preview_parameters_window.setLineWidth(5)
         self.preview_parameters_window.move(1015, 1035)
-        self.preview_parameters_window.resize(1540, 330)
+        self.preview_parameters_window.resize(500, 330)
         self.preview_parameters_window.setText('Preview Parameters')
         self.preview_parameters_window.setAlignment(Qt.AlignHCenter | Qt.AlignTop)
         self.preview_parameters_window.setFont(font)
@@ -545,6 +620,67 @@ class MainWindow(QMainWindow):
         self.track_video_button.clicked.connect(self.trigger_track_video)
         self.trigger_load_default_tracking_parameters()
         self.update_tracking_parameters_buttons(inactivate = True)
+    def add_colour_parameters_window(self):
+        font = QFont()
+        font.setPointSize(18)
+        self.colour_parameters_window = QLabel(self)
+        self.colour_parameters_window.setFrameShape(QFrame.Panel)
+        self.colour_parameters_window.setFrameShadow(QFrame.Sunken)
+        self.colour_parameters_window.setLineWidth(5)
+        self.colour_parameters_window.move(1525, 1035)
+        self.colour_parameters_window.resize(1030, 330)
+        self.colour_parameters_window.setText('Colour Parameters')
+        self.colour_parameters_window.setAlignment(Qt.AlignHCenter | Qt.AlignTop)
+        self.colour_parameters_window.setFont(font)
+    def add_colour_parameters_to_window(self):
+        font = QFont()
+        font.setPointSize(10)
+        self.colour_label_list = []
+        self.colour_textbox_list = []
+        self.colour_button_list = []
+        self.use_same_colour_for_eyes = True
+        count = 0
+        for i in range(len(self.colours)):
+            if i % 6 == 0 and i > 0:
+                count += 1
+            colour_label_pos = [1565 + count * 250, 1100 + (i * 45) - (count * 270)]
+            print(colour_label_pos)
+            colour_label = QLabel(self)
+            if i == len(self.colours) - 1:
+                colour_label.setText('Heading Angle: ')
+            if i == len(self.colours) - 2:
+                colour_label.setText('First Eye: ')
+            if i == len(self.colours) - 3:
+                if self.use_same_colour_for_eyes:
+                    colour_label.setText('Second Eye: ')
+                else:
+                    colour_label.setText('Second Eye: ')
+            if i < len(self.colours) - 3 :
+                colour_label.setText('Tail Point {0}: '.format(i + 1))
+            colour_label.move(colour_label_pos[0], colour_label_pos[1])
+            colour_label.resize(100, 20)
+            colour_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+            colour_label.setFont(font)
+            self.colour_label_list.append(colour_label)
+            colour_textbox_pos = [1665 + count * 250, 1100 + (i * 45) - (count * 270)]
+            colour_textbox = QLineEdit(self)
+            colour_textbox.setText('{0}'.format(self.colours[i]))
+            colour_textbox.move(colour_textbox_pos[0], colour_textbox_pos[1])
+            colour_textbox.resize(120, 20)
+            colour_textbox.setAlignment(Qt.AlignHCenter | Qt.AlignVCenter)
+            colour_textbox.setFont(font)
+            colour_textbox.setEnabled(False)
+            self.colour_textbox_list.append(colour_textbox)
+            colour_button_pos = [1795 + count * 250, 1100 + (i * 45) - (count * 270)]
+            colour_button = QPushButton(self)
+            colour_button.setIcon(QIcon('colour_wheel.jpg'))
+            colour_button.setIconSize(QSize(18, 18))
+            colour_button.move(colour_button_pos[0], colour_button_pos[1])
+            colour_button.resize(20, 20)
+            colour_button.clicked.connect(partial(self.check_colour_button, i))
+            self.colour_button_list.append(colour_button)
+        self.update_tracking_colour_parameters(inactivate = True)
+        self.trigger_update_colours()
 
     # Defining Update Functions
     def update_statusbar_message(self):
@@ -742,6 +878,15 @@ class MainWindow(QMainWindow):
                 self.save_current_tracking_parameters_button.setEnabled(False)
             if self.track_video_button.isEnabled():
                 self.track_video_button.setEnabled(False)
+    def update_tracking_colour_parameters(self, activate = False, inactivate = False):
+        if inactivate:
+            for i in range(len(self.colour_button_list)):
+                if self.colour_button_list[i].isEnabled():
+                    self.colour_button_list[i].setEnabled(False)
+        if activate:
+            for i in range(len(self.colour_button_list)):
+                if not self.colour_button_list[i].isEnabled():
+                    self.colour_button_list[i].setEnabled(True)
 
     # Defining Trigger Functions
     def trigger_save_background(self):
@@ -766,6 +911,7 @@ class MainWindow(QMainWindow):
             self.update_preview_parameters(activate = True)
             self.update_tracking_parameters(activate = True)
             self.update_tracking_parameters_buttons(activate = True)
+            self.update_tracking_colour_parameters(activate = True)
     def trigger_select_save_path(self):
         self.save_path = QFileDialog.getExistingDirectory(self, 'Select save path.')
         if self.save_path:
@@ -780,6 +926,7 @@ class MainWindow(QMainWindow):
                 self.update_preview_parameters(activate = True)
                 self.update_tracking_parameters(activate = True)
                 self.update_tracking_parameters_buttons(activate = True)
+                self.update_tracking_colour_parameters(activate = True)
             else:
                 self.update_preview_parameters(activate_preview_background = True)
     def trigger_open_video(self):
@@ -799,6 +946,7 @@ class MainWindow(QMainWindow):
                     self.update_tracking_parameters(activate = True)
                     self.update_preview_parameters(activate = True)
                     self.update_tracking_parameters_buttons(activate = True)
+                    self.update_tracking_colour_parameters(activate = True)
     def trigger_update_preview(self):
         if self.preview_background:
             self.update_preview_frame(self.background, self.background_width, self.background_height)
@@ -843,6 +991,10 @@ class MainWindow(QMainWindow):
         self.line_length = 5
         self.pixel_threshold = 40
         self.frame_change_threshold = 10
+        self.colours = [(0, 127, 255), (0, 255, 255),
+            (0, 255, 127), (0, 255, 0), (255, 255, 0),
+            (255, 0, 0), (255, 0, 127), (147, 20, 255),
+            (139, 139, 0), (49, 191, 114)]
         self.update_tracking_parameters()
         self.trigger_update_preview()
     def trigger_load_previous_tracking_parameters(self):
@@ -870,6 +1022,10 @@ class MainWindow(QMainWindow):
             'n_frames' : self.n_frames, 'line_length' : self.line_length,
             'pixel_threshold' : self.pixel_threshold, 'frame_change_threshold' : self.frame_change_threshold}
         np.save('tracking_parameters.npy', tracking_parameters)
+    def trigger_track_video(self):
+        # video_path, colours, n_tail_points, dist_tail_points, dist_eyes, dist_swim_bladder = self.video_path.copy(), self.colours.copy(), self.n_tail_points.copy(), self.dist_tail_points.copy(), self.dist_eyes.copy(), self.dist_swim_bladder.copy()
+        # self.trigger_unload_all()
+        tr.track_video(self.video_path, self.colours, self.n_tail_points, self.dist_tail_points, self.dist_eyes, self.dist_swim_bladder, n_frames = self.n_frames, starting_frame = self.starting_frame, save_path = self.save_path, background_path = self.background_path, line_length = self.line_length, video_fps = self.video_fps, pixel_threshold = self.pixel_threshold, frame_change_threshold = self.frame_change_threshold)
     def trigger_unload_all(self):
         if self.preview_background_checkbox.isChecked():
             self.preview_background_checkbox.setChecked(False)
@@ -890,10 +1046,75 @@ class MainWindow(QMainWindow):
         self.update_frame_window_slider_position()
         self.update_tracking_parameters(inactivate = True)
         self.update_tracking_parameters_buttons(inactivate = True)
-    def trigger_track_video(self):
-        # video_path, colours, n_tail_points, dist_tail_points, dist_eyes, dist_swim_bladder = self.video_path.copy(), self.colours.copy(), self.n_tail_points.copy(), self.dist_tail_points.copy(), self.dist_eyes.copy(), self.dist_swim_bladder.copy()
-        # self.trigger_unload_all()
-        tr.track_video(self.video_path, self.colours, self.n_tail_points, self.dist_tail_points, self.dist_eyes, self.dist_swim_bladder, n_frames = self.n_frames, starting_frame = self.starting_frame, save_path = self.save_path, background_path = self.background_path, line_length = self.line_length, video_fps = self.video_fps, pixel_threshold = self.pixel_threshold, frame_change_threshold = self.frame_change_threshold)
+        self.update_tracking_colour_parameters(inactivate = True)
+    def trigger_update_colours(self):
+        # a = QPushButton(self)
+        # a.move(1000, 1000)
+        # a.resize(100, 100)
+        if self.n_tail_points < len(self.colours) - 3:
+            for i in range(len(self.colours) - 3 - self.n_tail_points):
+                self.colour_label_list[len(self.colour_label_list) - 1].deleteLater()
+                self.colour_textbox_list[len(self.colour_textbox_list) - 1].deleteLater()
+                self.colour_button_list[len(self.colour_button_list) - 1].deleteLater()
+                del(self.colour_label_list[len(self.colour_label_list) - 1])
+                del(self.colour_textbox_list[len(self.colour_textbox_list) - 1])
+                del(self.colour_button_list[len(self.colour_button_list) - 1])
+                del(self.colours[self.n_tail_points])
+            for i in range(len(self.colours)):
+                if i == len(self.colours) - 1:
+                    self.colour_label_list[i].setText('Heading Angle: ')
+                if i == len(self.colours) - 2:
+                    self.colour_label_list[i].setText('First Eye: ')
+                if i == len(self.colours) - 3:
+                    if self.use_same_colour_for_eyes:
+                        self.colour_label_list[i].setText('Second Eye: ')
+                    else:
+                        self.colour_label_list[i].setText('Second Eye: ')
+                if i < len(self.colours) - 3 :
+                    self.colour_label_list[i].setText('Tail Point {0}: '.format(i + 1))
+        if self.n_tail_points > len(self.colours) - 3:
+            font = QFont()
+            font.setPointSize(10)
+            for i in range(self.n_tail_points + 3 - len(self.colours)):
+                self.colours.insert(i + self.n_tail_points, (0, 0, 0))
+                count = int((i + len(self.colours)) / 6)
+                colour_label_pos = [1565 + count * 250, 1100 + ((i + len(self.colours)) * 45) - (count * 270)]
+                colour_label = QLabel(self)
+                colour_label.move(colour_label_pos[0], colour_label_pos[1])
+                colour_label.resize(100, 20)
+                colour_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+                colour_label.setText('sdfsdf')
+                colour_label.setFont(font)
+                self.colour_label_list.append(colour_label)
+                colour_textbox_pos = [1665 + count * 250, 1100 + ((i + len(self.colours)) * 45) - (count * 270)]
+                colour_textbox = QLineEdit(self)
+                colour_textbox.move(colour_textbox_pos[0], colour_textbox_pos[1])
+                colour_textbox.resize(120, 20)
+                colour_textbox.setAlignment(Qt.AlignHCenter | Qt.AlignVCenter)
+                colour_textbox.setFont(font)
+                colour_textbox.setEnabled(False)
+                self.colour_textbox_list.append(colour_textbox)
+                colour_button_pos = [1795 + count * 250, 1100 + ((i + len(self.colours)) * 45) - (count * 270)]
+                colour_button = QPushButton(self)
+                colour_button.setIcon(QIcon('colour_wheel.jpg'))
+                colour_button.setIconSize(QSize(18, 18))
+                colour_button.move(colour_button_pos[0], colour_button_pos[1])
+                colour_button.resize(20, 20)
+                colour_button.clicked.connect(partial(self.check_colour_button, i))
+                self.colour_button_list.append(colour_button)
+            for i in range(len(self.colours)):
+                if i == len(self.colours) - 1:
+                    print(i)
+                    self.colour_label_list[i].setText('Heading Angle: ')
+                if i == len(self.colours) - 2:
+                    self.colour_label_list[i].setText('First Eye: ')
+                if i == len(self.colours) - 3:
+                    if self.use_same_colour_for_eyes:
+                        self.colour_label_list[i].setText('Second Eye: ')
+                    else:
+                        self.colour_label_list[i].setText('Second Eye: ')
+                if i < len(self.colours) - 3 :
+                    self.colour_label_list[i].setText('Tail Point {0}: '.format(i + 1))
 
     # Defining Check Functions
     def check_preview_frame_number_textbox(self):
@@ -950,7 +1171,12 @@ class MainWindow(QMainWindow):
         self.trigger_update_preview()
     def check_tracking_n_tail_points_textbox(self):
         if self.tracking_n_tail_points_textbox.text().isdigit():
+            # num_tail_points = int(self.tracking_n_tail_points_textbox.text()
+            # if num_tail_points < self.n_tail_points:
+            #     self.update_
             self.n_tail_points = int(self.tracking_n_tail_points_textbox.text())
+            if self.n_tail_points != len(self.colours) - 3:
+                self.trigger_update_colours()
             if self.preview_tracking_results:
                 self.trigger_update_preview()
     def check_tracking_dist_tail_points_textbox(self):
@@ -998,6 +1224,12 @@ class MainWindow(QMainWindow):
             self.frame_change_threshold = int(self.tracking_frame_change_threshold_textbox.text())
             if self.preview_tracking_results:
                 self.trigger_update_preview()
+    def check_colour_button(self, id):
+        colour = QColorDialog.getColor().getRgb()[0:3]
+        colour = (colour[0], colour[1], colour[2])
+        self.colour_textbox_list[id].setText('{0}'.format(colour))
+        self.colours[id] = colour
+        self.trigger_update_preview()
 
     # Defining Event Functions
     def closeEvent(self, event):

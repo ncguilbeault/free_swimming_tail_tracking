@@ -216,7 +216,7 @@ def annotate_tracking_results_onto_frame(frame, results, colours, line_length):
     annotated_frame = cv2.circle(annotated_frame, (int(round(first_eye_coords[1])), int(round(first_eye_coords[0]))), 1, colours[-2], -1)
     annotated_frame = cv2.circle(annotated_frame, (int(round(second_eye_coords[1])), int(round(second_eye_coords[0]))), 1, colours[-2], - 1)
     for i in range(1, len(tail_point_coords)):
-        annotated_frame = cv2.circle(annotated_frame, (int(round((tail_point_coords[i - 1][1] + tail_point_coords[i][1]) / 2)), int(round((tail_point_coords[i - 1][0] + tail_point_coords[i][0]) / 2))), 1, colours[i], -1)
+        annotated_frame = cv2.circle(annotated_frame, (int(round((tail_point_coords[i - 1][1] + tail_point_coords[i][1]) / 2)), int(round((tail_point_coords[i - 1][0] + tail_point_coords[i][0]) / 2))), 1, colours[i - 1], -1)
     annotated_frame = cv2.arrowedLine(annotated_frame, (int(round(heading_coords[1] - (line_length / 2 * np.cos(heading_angle)))), int(round(heading_coords[0] - (line_length / 2 * np.sin(heading_angle))))), (int(round(heading_coords[1] + (line_length * np.cos(heading_angle)))), int(round(heading_coords[0] + (line_length * np.sin(heading_angle))))), colours[-1], 1, tipLength = 0.2)
     return annotated_frame
 
