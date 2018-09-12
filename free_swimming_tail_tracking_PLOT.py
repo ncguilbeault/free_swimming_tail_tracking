@@ -3,11 +3,12 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-data_file = "D:\\2018-09-06\\19-25-42.692_results.npy"
+data_file = "D:\\2018-09-06\\19-25-19.259_results.npy"
 data = np.load(data_file).item()
+print(data.keys())
 
-colors = [(0, 0, 255), (0, 127, 255), (0, 255, 255), (0, 255, 127), (0, 255, 0), (255, 255, 0), (255, 0, 0), (255, 0, 127), (147, 20, 255), (139, 139, 0), (49, 191, 114)]
-colors = [[colors[i][2]/255, colors[i][1]/255, colors[i][0]/255] for i in range(len(colors))]
+# colors = [(0, 0, 255), (0, 127, 255), (0, 255, 255), (0, 255, 127), (0, 255, 0), (255, 255, 0), (255, 0, 0), (255, 0, 127), (147, 20, 255), (139, 139, 0), (49, 191, 114)]
+# colors = [[colors[i][2]/255, colors[i][1]/255, colors[i][0]/255] for i in range(len(colors))]
 
 smoothing_factor = 5
 
@@ -17,6 +18,8 @@ body_coord_array = data['body_coord_array']
 eye_angle_array = data['eye_angle_array']
 video_n_frames = data['video_n_frames']
 video_fps = data['video_fps']
+colours = data['colours']
+colors = [[colours[i][2]/255, colours[i][1]/255, colours[i][0]/255] for i in range(len(colours))]
 
 [print(i, len(tail_coord_array[i])) for i in range(len(tail_coord_array)) if len(tail_coord_array[i]) != 8]
 

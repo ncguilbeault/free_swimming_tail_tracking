@@ -1017,7 +1017,8 @@ def track_video(video_path, colours, n_tail_points, dist_tail_points, dist_eyes,
                     'dist_swim_bladder' : dist_swim_bladder,
                     'eyes_threshold' : eyes_threshold,
                     'pixel_threshold' : pixel_threshold,
-                    'frame_change_threshold' : frame_change_threshold
+                    'frame_change_threshold' : frame_change_threshold,
+                    'colours' : colours
                 }
 
     # Create a path that will contain all of the results from tracking.

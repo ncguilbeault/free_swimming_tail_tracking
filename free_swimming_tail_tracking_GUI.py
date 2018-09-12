@@ -689,6 +689,16 @@ class TrackingContent(QMainWindow):
         self.load_default_colours_button.move(2395, 1100)
         self.load_default_colours_button.resize(150, 40)
         self.load_default_colours_button.clicked.connect(self.check_load_default_colours_button)
+
+        self.load_previous_colours_button = QPushButton('Load Previous Colours', self)
+        self.load_previous_colours_button.move(2395, 1150)
+        self.load_previous_colours_button.resize(150, 40)
+        self.load_previous_colours_button.clicked.connect(self.trigger_load_previous_colours)
+
+        self.save_current_colours_button = QPushButton('Save Current Colours', self)
+        self.save_current_colours_button.move(2395, 1200)
+        self.save_current_colours_button.resize(150, 40)
+        self.save_current_colours_button.clicked.connect(self.trigger_save_current_colours)
         self.update_colour_parameters_buttons(inactivate = True)
 
     # Defining Update Functions
@@ -900,9 +910,17 @@ class TrackingContent(QMainWindow):
         if activate:
             if not self.load_default_colours_button.isEnabled():
                 self.load_default_colours_button.setEnabled(True)
+            if not self.load_previous_colours_button.isEnabled():
+                self.load_previous_colours_button.setEnabled(True)
+            if not self.save_current_colours_button.isEnabled():
+                self.save_current_colours_button.setEnabled(True)
         if inactivate:
             if self.load_default_colours_button.isEnabled():
                 self.load_default_colours_button.setEnabled(False)
+            if self.load_previous_colours_button.isEnabled():
+                self.load_previous_colours_button.setEnabled(False)
+            if self.save_current_colours_button.isEnabled():
+                self.save_current_colours_button.setEnabled(False)
     def update_colours(self):
         if self.n_tail_points < len(self.colours) - 3:
             for i in range(len(self.colours) - 3 - self.n_tail_points):
@@ -937,7 +955,6 @@ class TrackingContent(QMainWindow):
                 colour_label.move(colour_label_pos[0], colour_label_pos[1])
                 colour_label.resize(100, 20)
                 colour_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
-                colour_label.setText('sdfsdf')
                 colour_label.setFont(font)
                 colour_label.show()
                 self.colour_label_list.append(colour_label)
@@ -956,7 +973,7 @@ class TrackingContent(QMainWindow):
                 colour_button.setIconSize(QSize(18, 18))
                 colour_button.move(colour_button_pos[0], colour_button_pos[1])
                 colour_button.resize(20, 20)
-                colour_button.clicked.connect(partial(self.trigger_update_single_colour, i + self.n_tail_points - 1))
+                colour_button.clicked.connect(partial(self.trigger_update_single_colour, len(self.colours) - 1))
                 colour_button.show()
                 self.colour_button_list.append(colour_button)
             for i in range(len(self.colours)):
@@ -1110,6 +1127,7 @@ class TrackingContent(QMainWindow):
             self.pixel_threshold = tracking_parameters['pixel_threshold']
             self.frame_change_threshold = tracking_parameters['frame_change_threshold']
             self.update_tracking_parameters()
+            self.update_colours()
             self.trigger_update_preview()
         except:
             print('Error: tracking parameters not found.')
@@ -1122,10 +1140,12 @@ class TrackingContent(QMainWindow):
             'pixel_threshold' : self.pixel_threshold, 'frame_change_threshold' : self.frame_change_threshold}
         np.save('tracking_parameters.npy', tracking_parameters)
     def trigger_track_video(self):
+        background_path = self.background_path
         if self.background_path == 'Background calculated and loaded into memory/Background calculated and loaded into memory':
-            self.trigger_save_background()
+            # self.trigger_save_background()
+            background_path = None
         colours = [(self.colours[i][2], self.colours[i][1], self.colours[i][0]) for i in range(len(self.colours))]
-        tr.track_video(self.video_path, colours, self.n_tail_points, self.dist_tail_points, self.dist_eyes, self.dist_swim_bladder, n_frames = self.n_frames, starting_frame = self.starting_frame, save_path = self.save_path, background_path = self.background_path, line_length = self.line_length, video_fps = self.video_fps, pixel_threshold = self.pixel_threshold, frame_change_threshold = self.frame_change_threshold)
+        tr.track_video(self.video_path, colours, self.n_tail_points, self.dist_tail_points, self.dist_eyes, self.dist_swim_bladder, n_frames = self.n_frames, starting_frame = self.starting_frame, save_path = self.save_path, background_path = background_path, line_length = self.line_length, video_fps = self.video_fps, pixel_threshold = self.pixel_threshold, frame_change_threshold = self.frame_change_threshold)
     def trigger_unload_all(self):
         if self.preview_background_checkbox.isChecked():
             self.preview_background_checkbox.setChecked(False)
@@ -1162,6 +1182,20 @@ class TrackingContent(QMainWindow):
         for i in range(self.n_tail_points):
             colour = colour_map(i / (self.n_tail_points - 1))[:3]
             self.colours[i] = (int(colour[0] * 255), int(colour[1] * 255), int(colour[2] * 255))
+    def trigger_load_previous_colours(self):
+        try:
+            colours = np.load('colours.npy').item()
+            self.colours = colours['colours']
+            self.update_colours()
+            self.trigger_update_preview()
+        except:
+            print('Error: tracking parameters not found.')
+            self.trigger_load_default_colours()
+            self.update_colours()
+            self.trigger_update_preview()
+    def trigger_save_current_colours(self):
+        colours = {'colours' : self.colours}
+        np.save('colours.npy', colours)
 
     # Defining Check Functions
     def check_preview_frame_number_textbox(self):
@@ -1225,8 +1259,7 @@ class TrackingContent(QMainWindow):
                 self.tracking_n_tail_points_textbox.setText('15')
             if self.n_tail_points != len(self.colours) - 3:
                 self.update_colours()
-            if self.preview_tracking_results:
-                self.trigger_update_preview()
+            self.trigger_update_preview()
         else:
             self.tracking_n_tail_points_textbox.setText(str(self.n_tail_points))
     def check_tracking_dist_tail_points_textbox(self):
