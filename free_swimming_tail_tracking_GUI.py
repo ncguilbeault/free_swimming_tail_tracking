@@ -73,29 +73,29 @@ class MainWindow(QMainWindow):
         self.options_menu.addAction(self.unload_all_action)
 
     def trigger_save_background(self):
-        self.tracking_tab.tracking_tab.tracking_content.trigger_save_background()
+        self.tracking_tab.tracking_window.tracking_content.trigger_save_background()
     def trigger_calculate_background(self):
-        self.tracking_tab.tracking_tab.tracking_content.trigger_calculate_background()
+        self.tracking_tab.tracking_window.tracking_content.trigger_calculate_background()
     def trigger_select_save_path(self):
-        self.tracking_tab.tracking_tab.tracking_content.trigger_select_save_path()
+        self.tracking_tab.tracking_window.tracking_content.trigger_select_save_path()
     def trigger_load_background(self):
-        self.tracking_tab.tracking_tab.tracking_content.trigger_load_background()
+        self.tracking_tab.tracking_window.tracking_content.trigger_load_background()
     def trigger_open_video(self):
-        self.tracking_tab.tracking_tab.tracking_content.trigger_open_video()
+        self.tracking_tab.tracking_window.tracking_content.trigger_open_video()
     def trigger_unload_all(self):
-        self.tracking_tab.tracking_tab.tracking_content.trigger_unload_all()
+        self.tracking_tab.tracking_window.tracking_content.trigger_unload_all()
 
 class TrackingTab(QTabWidget):
 
-    def __init__(self, parent = None):
-        super(TrackingTab, self).__init__(parent)
-        self.tracking_tab = TrackingScroll()
-        self.addTab(self.tracking_tab,"Tracking")
+    def __init__(self):
+        super(TrackingTab, self).__init__()
+        self.tracking_window = TrackingWindow()
+        self.addTab(self.tracking_window,"Tracking")
 
-class TrackingScroll(QScrollArea):
+class TrackingWindow(QScrollArea):
 
-    def __init__(self, parent = None):
-        super(TrackingScroll, self).__init__(parent)
+    def __init__(self):
+        super(TrackingWindow, self).__init__()
         self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
         self.tracking_content = TrackingContent()
@@ -465,7 +465,6 @@ class TrackingContent(QMainWindow):
         self.tracking_n_tail_points_textbox.setAlignment(Qt.AlignLeft | Qt.AlignTop)
         self.tracking_n_tail_points_textbox.setFont(font)
         self.tracking_n_tail_points_textbox.returnPressed.connect(self.check_tracking_n_tail_points_textbox)
-        # self.tracking_n_tail_points_textbox.textChanged.connect(self.check_tracking_n_tail_points_textbox)
 
         self.tracking_dist_tail_points_textbox_label = QLabel(self)
         self.tracking_dist_tail_points_textbox_label.move(1500, 140)
@@ -593,6 +592,7 @@ class TrackingContent(QMainWindow):
         self.tracking_frame_change_threshold_textbox.setFont(font)
         self.tracking_frame_change_threshold_textbox.returnPressed.connect(self.check_tracking_frame_change_threshold_textbox)
         self.trigger_load_default_tracking_parameters()
+        self.trigger_load_default_colours()
         self.update_tracking_parameters(inactivate = True)
     def add_tracking_parameters_buttons(self):
         font = QFont()
@@ -601,7 +601,7 @@ class TrackingContent(QMainWindow):
         self.load_default_tracking_parameters_button.move(1800, 500)
         self.load_default_tracking_parameters_button.resize(400, 100)
         self.load_default_tracking_parameters_button.setFont(font)
-        self.load_default_tracking_parameters_button.clicked.connect(self.trigger_load_default_tracking_parameters)
+        self.load_default_tracking_parameters_button.clicked.connect(self.check_load_default_tracking_parameters_button)
 
         self.load_previous_tracking_parameters_button = QPushButton('Load Previous Tracking Parameters', self)
         self.load_previous_tracking_parameters_button.move(1800, 610)
@@ -642,11 +642,8 @@ class TrackingContent(QMainWindow):
         font = QFont()
         font.setPointSize(10)
         self.use_same_colour_for_eyes = True
-        # count = 0
         for i in range(len(self.colours)):
             count = int(i / 6)
-            # if i % 6 == 0 and i > 0:
-            #     count += 1
             colour_label_pos = [1565 + count * 250, 1100 + (i * 45) - (count * 270)]
             colour_label = QLabel(self)
             if i == len(self.colours) - 1:
@@ -1110,7 +1107,6 @@ class TrackingContent(QMainWindow):
         self.line_length = 5
         self.pixel_threshold = 40
         self.frame_change_threshold = 10
-        self.trigger_load_default_colours()
         self.update_tracking_parameters()
         self.trigger_update_preview()
     def trigger_load_previous_tracking_parameters(self):
@@ -1126,8 +1122,8 @@ class TrackingContent(QMainWindow):
             self.line_length = tracking_parameters['line_length']
             self.pixel_threshold = tracking_parameters['pixel_threshold']
             self.frame_change_threshold = tracking_parameters['frame_change_threshold']
-            self.update_tracking_parameters()
             self.update_colours()
+            self.update_tracking_parameters()
             self.trigger_update_preview()
         except:
             print('Error: tracking parameters not found.')
@@ -1140,12 +1136,13 @@ class TrackingContent(QMainWindow):
             'pixel_threshold' : self.pixel_threshold, 'frame_change_threshold' : self.frame_change_threshold}
         np.save('tracking_parameters.npy', tracking_parameters)
     def trigger_track_video(self):
-        background_path = self.background_path
-        if self.background_path == 'Background calculated and loaded into memory/Background calculated and loaded into memory':
-            # self.trigger_save_background()
-            background_path = None
-        colours = [(self.colours[i][2], self.colours[i][1], self.colours[i][0]) for i in range(len(self.colours))]
-        tr.track_video(self.video_path, colours, self.n_tail_points, self.dist_tail_points, self.dist_eyes, self.dist_swim_bladder, n_frames = self.n_frames, starting_frame = self.starting_frame, save_path = self.save_path, background_path = background_path, line_length = self.line_length, video_fps = self.video_fps, pixel_threshold = self.pixel_threshold, frame_change_threshold = self.frame_change_threshold)
+        self.track_video_thread = TrackingThread()
+        self.track_video_thread.run(self.video_path, self.colours, self.n_tail_points, self.dist_tail_points, self.dist_eyes, self.dist_swim_bladder, self.n_frames, self.starting_frame, self.save_path, self.background_path, self.line_length, self.video_fps, self.pixel_threshold, self.frame_change_threshold)
+        # background_path = self.background_path
+        # if self.background_path == 'Background calculated and loaded into memory/Background calculated and loaded into memory':
+        #     background_path = None
+        # colours = [(self.colours[i][2], self.colours[i][1], self.colours[i][0]) for i in range(len(self.colours))]
+        # tr.track_video(self.video_path, colours, self.n_tail_points, self.dist_tail_points, self.dist_eyes, self.dist_swim_bladder, n_frames = self.n_frames, starting_frame = self.starting_frame, save_path = self.save_path, background_path = background_path, line_length = self.line_length, video_fps = self.video_fps, pixel_threshold = self.pixel_threshold, frame_change_threshold = self.frame_change_threshold)
     def trigger_unload_all(self):
         if self.preview_background_checkbox.isChecked():
             self.preview_background_checkbox.setChecked(False)
@@ -1325,6 +1322,9 @@ class TrackingContent(QMainWindow):
                 self.trigger_update_preview()
         else:
             self.tracking_frame_change_threshold_textbox.setText(str(self.frame_change_threshold))
+    def check_load_default_tracking_parameters_button(self):
+        self.trigger_load_default_tracking_parameters()
+        self.update_colours()
     def check_load_default_colours_button(self):
         self.trigger_load_default_colours()
         self.update_colours()
@@ -1333,6 +1333,19 @@ class TrackingContent(QMainWindow):
     # Defining Event Functions
     def closeEvent(self, event):
         event.accept()
+
+class TrackingThread(QThread):
+
+    def __init__(self):
+        super(TrackingThread, self).__init__()
+
+    def run(self, video_path, colours, n_tail_points, dist_tail_points, dist_eyes, dist_swim_bladder, n_frames, starting_frame, save_path, background_path, line_length, video_fps, pixel_threshold, frame_change_threshold):
+        self.background_path = background_path
+        if background_path == 'Background calculated and loaded into memory/Background calculated and loaded into memory':
+            self.background_path = None
+        self.colours = [(colours[i][2], colours[i][1], colours[i][0]) for i in range(len(colours))]
+        tr.track_video(video_path, self.colours, n_tail_points, dist_tail_points, dist_eyes, dist_swim_bladder, n_frames = n_frames, starting_frame = starting_frame, save_path = save_path, background_path = background_path, line_length = line_length, video_fps = video_fps, pixel_threshold = pixel_threshold, frame_change_threshold = frame_change_threshold)
+
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
