@@ -6,7 +6,7 @@ import os
 import subprocess
 import cv2
 import numpy as np
-import free_swimming_tail_tracking as tr
+import free_swimming_tail_tracking_UT as ut
 import matplotlib.cm as cm
 from functools import partial
 
@@ -127,6 +127,7 @@ class TrackingContent(QMainWindow):
         self.add_colour_parameters_to_window()
         self.add_colour_parameters_buttons()
         self.setWindowTitle('Free Swimming Tail Tracking')
+        self.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Ignored)
         self.resize(2560, 1400)
         self.show()
     def initialize_class_variables(self):
@@ -168,10 +169,10 @@ class TrackingContent(QMainWindow):
     def get_video_attributes(self):
         self.video_path_folder = os.path.dirname(self.video_path)
         self.video_path_basename = os.path.basename(self.video_path)
-        self.video_n_frames = tr.get_total_frame_number_from_video(self.video_path)
-        self.video_fps = tr.get_fps_from_video(self.video_path)
-        self.video_format = tr.get_video_format_from_video(self.video_path)
-        self.video_frame_width, self.video_frame_height = tr.get_frame_size_from_video(self.video_path)
+        self.video_n_frames = ut.get_total_frame_number_from_video(self.video_path)
+        self.video_fps = ut.get_fps_from_video(self.video_path)
+        self.video_format = ut.get_video_format_from_video(self.video_path)
+        self.video_frame_width, self.video_frame_height = ut.get_frame_size_from_video(self.video_path)
     def get_background_attributes(self):
         self.background_path_folder = os.path.dirname(self.background_path)
         self.background_path_basename = os.path.basename(self.background_path)
@@ -1006,19 +1007,19 @@ class TrackingContent(QMainWindow):
         if self.save_path is not None:
             if self.background is not None and self.background_path == 'Background calculated and loaded into memory/Background calculated and loaded into memory':
                 self.background_path = '{0}/{1}_background.tif'.format(self.save_path, self.video_path_basename[:-4])
-                tr.save_background_to_file(self.background, self.background_path)
+                ut.save_background_to_file(self.background, self.background_path)
                 self.get_background_attributes()
                 self.update_descriptors()
         else:
             self.save_path = self.video_path_folder
             self.background_path = '{0}/{1}_background.tif'.format(self.save_path, self.video_path_basename[:-4])
-            tr.save_background_to_file(self.background, self.background_path)
+            ut.save_background_to_file(self.background, self.background_path)
             self.get_background_attributes()
             self.update_descriptors()
     def trigger_calculate_background(self):
         if self.video_path is not None:
             self.background_path = 'Background calculated and loaded into memory/Background calculated and loaded into memory'
-            self.background = tr.calculate_background(self.video_path)[0]
+            self.background = ut.calculate_background(self.video_path)[0]
             self.get_background_attributes()
             self.update_descriptors()
             self.update_preview_parameters(activate = True)
@@ -1033,7 +1034,7 @@ class TrackingContent(QMainWindow):
     def trigger_load_background(self):
         self.background_path, _ = QFileDialog.getOpenFileName(self,"QFileDialog.getOpenFileName()", "","Image Files (*.tif)", options=QFileDialog.Options())
         if self.background_path:
-            self.background = tr.load_background_into_memory(self.background_path)
+            self.background = ut.load_background_into_memory(self.background_path)
             self.get_background_attributes()
             self.update_descriptors()
             if self.video_path:
@@ -1049,7 +1050,7 @@ class TrackingContent(QMainWindow):
         if self.video_path:
             self.get_video_attributes()
             self.update_descriptors()
-            success, self.frame = tr.load_frame_into_memory(self.video_path, self.frame_number - 1)
+            success, self.frame = ut.load_frame_into_memory(self.video_path, self.frame_number - 1)
             if success and self.frame is not None:
                 self.update_preview_frame(self.frame, self.video_frame_width, self.video_frame_height)
                 self.update_preview_frame_window()
@@ -1073,20 +1074,20 @@ class TrackingContent(QMainWindow):
             self.update_frame_change_buttons(inactivate = True)
         else:
             if self.video_path is not None:
-                success, self.frame = tr.load_frame_into_memory(self.video_path, self.frame_number - 1)
+                success, self.frame = ut.load_frame_into_memory(self.video_path, self.frame_number - 1)
                 if success and self.frame is not None:
                     use_grayscale = True
                     if self.preview_background_subtracted_frame:
-                        self.frame = tr.subtract_background_from_frame(self.frame, self.background)
+                        self.frame = ut.subtract_background_from_frame(self.frame, self.background)
                         if self.preview_tracking_results:
-                            results = tr.track_tail_in_frame([tr.apply_median_blur_to_frame(self.frame), success, self.n_tail_points, self.dist_tail_points, self.dist_eyes, self.dist_swim_bladder, self.pixel_threshold])
+                            results = ut.track_tail_in_frame([ut.apply_median_blur_to_frame(self.frame), success, self.n_tail_points, self.dist_tail_points, self.dist_eyes, self.dist_swim_bladder, self.pixel_threshold])
                             if results is not None:
-                                self.frame = tr.annotate_tracking_results_onto_frame(self.frame, results, self.colours, self.line_length)
+                                self.frame = ut.annotate_tracking_results_onto_frame(self.frame, results, self.colours, self.line_length)
                                 use_grayscale = False
                     elif self.preview_tracking_results:
-                        results = tr.track_tail_in_frame([tr.apply_median_blur_to_frame(tr.subtract_background_from_frame(self.frame, self.background)), success, self.n_tail_points, self.dist_tail_points, self.dist_eyes, self.dist_swim_bladder, self.pixel_threshold])
+                        results = ut.track_tail_in_frame([ut.apply_median_blur_to_frame(ut.subtract_background_from_frame(self.frame, self.background)), success, self.n_tail_points, self.dist_tail_points, self.dist_eyes, self.dist_swim_bladder, self.pixel_threshold])
                         if results is not None:
-                            self.frame = tr.annotate_tracking_results_onto_frame(self.frame, results, self.colours, self.line_length)
+                            self.frame = ut.annotate_tracking_results_onto_frame(self.frame, results, self.colours, self.line_length)
                             use_grayscale = False
                     self.update_preview_frame(self.frame, self.video_frame_width, self.video_frame_height, grayscale = use_grayscale)
                     self.update_preview_frame_window()
@@ -1137,12 +1138,27 @@ class TrackingContent(QMainWindow):
         np.save('tracking_parameters.npy', tracking_parameters)
     def trigger_track_video(self):
         self.track_video_thread = TrackingThread()
-        self.track_video_thread.run(self.video_path, self.colours, self.n_tail_points, self.dist_tail_points, self.dist_eyes, self.dist_swim_bladder, self.n_frames, self.starting_frame, self.save_path, self.background_path, self.line_length, self.video_fps, self.pixel_threshold, self.frame_change_threshold)
+        self.track_video_thread.video_path = self.video_path
+        self.track_video_thread.n_tail_points = self.n_tail_points
+        self.track_video_thread.dist_tail_points = self.dist_tail_points
+        self.track_video_thread.dist_eyes = self.dist_eyes
+        self.track_video_thread.dist_swim_bladder = self.dist_swim_bladder
+        self.track_video_thread.n_frames = self.n_frames
+        self.track_video_thread.starting_frame = self.starting_frame
+        self.track_video_thread.save_path = self.save_path
+        self.track_video_thread.background_path = self.background_path
+        self.track_video_thread.line_length = self.line_length
+        self.track_video_thread.video_fps = self.video_fps
+        self.track_video_thread.pixel_threshold = self.pixel_threshold
+        self.track_video_thread.frame_change_threshold = self.frame_change_threshold
+        self.track_video_thread.colours = self.colours
+        self.track_video_thread.start()
+        # self.track_video_thread.start(self.video_path, self.colours, self.n_tail_points, self.dist_tail_points, self.dist_eyes, self.dist_swim_bladder, self.n_frames, self.starting_frame, self.save_path, self.background_path, self.line_length, self.video_fps, self.pixel_threshold, self.frame_change_threshold)
         # background_path = self.background_path
         # if self.background_path == 'Background calculated and loaded into memory/Background calculated and loaded into memory':
         #     background_path = None
         # colours = [(self.colours[i][2], self.colours[i][1], self.colours[i][0]) for i in range(len(self.colours))]
-        # tr.track_video(self.video_path, colours, self.n_tail_points, self.dist_tail_points, self.dist_eyes, self.dist_swim_bladder, n_frames = self.n_frames, starting_frame = self.starting_frame, save_path = self.save_path, background_path = background_path, line_length = self.line_length, video_fps = self.video_fps, pixel_threshold = self.pixel_threshold, frame_change_threshold = self.frame_change_threshold)
+        # ut.track_video(self.video_path, colours, self.n_tail_points, self.dist_tail_points, self.dist_eyes, self.dist_swim_bladder, n_frames = self.n_frames, starting_frame = self.starting_frame, save_path = self.save_path, background_path = background_path, line_length = self.line_length, video_fps = self.video_fps, pixel_threshold = self.pixel_threshold, frame_change_threshold = self.frame_change_threshold)
     def trigger_unload_all(self):
         if self.preview_background_checkbox.isChecked():
             self.preview_background_checkbox.setChecked(False)
@@ -1338,13 +1354,25 @@ class TrackingThread(QThread):
 
     def __init__(self):
         super(TrackingThread, self).__init__()
+        self.video_path = None
+        self.colours = None
+        self.n_tail_points = None
+        self.dist_tail_points = None
+        self.dist_eyes = None
+        self.dist_swim_bladder = None
+        self.n_frames = None
+        self.starting_frame = None
+        self.save_path = None
+        self.background_path = None
+        self.line_length = None
+        self.video_fps = None
+        self.pixel_threshold = None
+        self.frame_change_threshold = None
 
-    def run(self, video_path, colours, n_tail_points, dist_tail_points, dist_eyes, dist_swim_bladder, n_frames, starting_frame, save_path, background_path, line_length, video_fps, pixel_threshold, frame_change_threshold):
-        self.background_path = background_path
-        if background_path == 'Background calculated and loaded into memory/Background calculated and loaded into memory':
+    def run(self):
+        if self.background_path == 'Background calculated and loaded into memory/Background calculated and loaded into memory':
             self.background_path = None
-        self.colours = [(colours[i][2], colours[i][1], colours[i][0]) for i in range(len(colours))]
-        tr.track_video(video_path, self.colours, n_tail_points, dist_tail_points, dist_eyes, dist_swim_bladder, n_frames = n_frames, starting_frame = starting_frame, save_path = save_path, background_path = background_path, line_length = line_length, video_fps = video_fps, pixel_threshold = pixel_threshold, frame_change_threshold = frame_change_threshold)
+        ut.track_video(self.video_path, self.colours, self.n_tail_points, self.dist_tail_points, self.dist_eyes, self.dist_swim_bladder, n_frames = self.n_frames, starting_frame = self.starting_frame, save_path = self.save_path, background_path = self.background_path, line_length = self.line_length, video_fps = self.video_fps, pixel_threshold = self.pixel_threshold, frame_change_threshold = self.frame_change_threshold)
 
 
 if __name__ == '__main__':

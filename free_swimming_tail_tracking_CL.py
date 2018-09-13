@@ -1,6 +1,6 @@
 '''Software Written by Nicholas Guilbeault 2018'''
 
-import free_swimming_tail_tracking as tr
+import free_swimming_tail_utacking_UT as ut
 import numpy as np
 
 # Create the video path.
@@ -9,12 +9,12 @@ video_path = "C:\\Users\\User1\\Desktop\\Video1.avi"
 # Create the background path.
 background_path = "C:\\Users\\User1\\Desktop\\Video1_background.tif"
 
-# Set the colours to be used for drawing values of interest on the final tracked videos.
+# Set the colours to be used for drawing values of interest on the final utacked videos.
 colours =    [  (0, 0, 255),     (0, 127, 255),  (0, 255, 255),  (0, 255, 127),  (0, 255, 0),
                 (255, 255, 0),  (255, 0, 0),    (255, 0, 127),  (147, 20, 255), (139, 139, 0),
                 (49, 191, 114)
             ]
-# If tracking parameters were saved using GUI, load tracking parameters.
+# If utacking parameters were saved using GUI, load utacking parameters.
 tracking_parameters = np.load('tracking_parameters.npy').item()
 n_tail_points = tracking_parameters['n_tail_points']
 dist_tail_points = tracking_parameters['dist_tail_points']
@@ -40,14 +40,14 @@ pixel_threshold = 40
 # Set the line length that will be used for drawing the heading angle and eye angles.
 line_length = 4
 
-# Preview the results of the tracking parameters.
-tr.preview_tracking_results(video_path, colours, n_tail_points, dist_tail_points, dist_eyes, dist_swim_bladder, background_path = background_path, pixel_threshold = pixel_threshold, line_length = line_length)
+# Preview the results of the utacking parameters.
+ut.preview_utacking_results(video_path, colours, n_tail_points, dist_tail_points, dist_eyes, dist_swim_bladder, background_path = background_path, pixel_threshold = pixel_threshold, line_length = line_length)
 
-# Track the video. This function will perform tail tracking, annotate the results onto video, and save the results to a .npz file.
-tr.track_video(video_path, colours, n_tail_points, dist_tail_points, dist_eyes, dist_swim_bladder, background_path = background_path, pixel_threshold = pixel_threshold, line_length = line_length)
+# utack the video. This function will perform tail utacking, annotate the results onto video, and save the results to a .npz file.
+ut.utack_video(video_path, colours, n_tail_points, dist_tail_points, dist_eyes, dist_swim_bladder, background_path = background_path, pixel_threshold = pixel_threshold, line_length = line_length)
 
-# Track the video using multiprocessing and return the results.
-results = tr.track_tail_in_video_with_multiprocessing(video_path, colours, n_tail_points, dist_tail_points, dist_eyes, dist_swim_bladder, background_path = background_path, pixel_threshold = pixel_threshold, line_length = line_length)
+# utack the video using multiprocessing and return the results.
+results = ut.utack_tail_in_video_with_multiprocessing(video_path, colours, n_tail_points, dist_tail_points, dist_eyes, dist_swim_bladder, background_path = background_path, pixel_threshold = pixel_threshold, line_length = line_length)
 
-# Track the video without using multiprocessing.
-results = tr.track_tail_in_video_without_multiprocessing(video_path, colours, n_tail_points, dist_tail_points, dist_eyes, dist_swim_bladder, background_path = background_path, pixel_threshold = pixel_threshold, line_length = line_length)
+# utack the video without using multiprocessing.
+results = ut.utack_tail_in_video_without_multiprocessing(video_path, colours, n_tail_points, dist_tail_points, dist_eyes, dist_swim_bladder, background_path = background_path, pixel_threshold = pixel_threshold, line_length = line_length)
