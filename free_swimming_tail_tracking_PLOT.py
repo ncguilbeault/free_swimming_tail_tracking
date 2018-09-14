@@ -3,9 +3,9 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-data_file = "D:\\2018-09-06\\19-25-19.259_results.npy"
+data_file = "C:\\Users\\Thiele Lab\\Documents\\Sequences\\Camera 1\\17-07-11.550_results.npy"
 data = np.load(data_file).item()
-print(data.keys())
+# print(data.keys())
 
 # colors = [(0, 0, 255), (0, 127, 255), (0, 255, 255), (0, 255, 127), (0, 255, 0), (255, 255, 0), (255, 0, 0), (255, 0, 127), (147, 20, 255), (139, 139, 0), (49, 191, 114)]
 # colors = [[colors[i][2]/255, colors[i][1]/255, colors[i][0]/255] for i in range(len(colors))]
@@ -20,8 +20,15 @@ video_n_frames = data['video_n_frames']
 video_fps = data['video_fps']
 colours = data['colours']
 colors = [[colours[i][2]/255, colours[i][1]/255, colours[i][0]/255] for i in range(len(colours))]
+dist_tail_points = data['dist_tail_points']
+dist_eyes = data['dist_eyes']
+dist_swim_bladder = data['dist_swim_bladder']
+eyes_threshold = data['eyes_threshold']
+pixel_threshold = data['pixel_threshold']
+frame_change_threshold = data['frame_change_threshold']
 
-[print(i, len(tail_coord_array[i])) for i in range(len(tail_coord_array)) if len(tail_coord_array[i]) != 8]
+# [print(i, len(tail_coord_array[i])) for i in range(len(tail_coord_array)) if len(tail_coord_array[i]) != 8]
+# print(dist_tail_points,dist_eyes,dist_swim_bladder,eyes_threshold,pixel_threshold,frame_change_threshold)
 
 # tail_angles = [[np.arctan2(tail_coord_array[j][i + 1][0] - tail_coord_array[j][i][0], tail_coord_array[j][i + 1][1] - tail_coord_array[j][i][1]) for i in range(len(tail_coord_array[0]) - 1) if tail_coord_array[j][i + 1][0]] for j in range(len(tail_coord_array))]
 tail_angles = [[np.arctan2(tail_coord_array[j][i + 1][0] - tail_coord_array[j][i][0], tail_coord_array[j][i + 1][1] - tail_coord_array[j][i][1]) for i in range(len(tail_coord_array[0]) - 1)] for j in range(len(tail_coord_array))]
@@ -38,16 +45,17 @@ for i in range(len(tail_angles)):
 
 sum_tail_angles = [np.sum([abs(tail_angles[i][j]) for i in range(len(tail_angles))]) for j in range(len(tail_angles[0]))]
 tail_angle_frames = np.where([sum_tail_angles[i] == sum_tail_angles[i + 1] == sum_tail_angles[i + 2] for i in range(len(sum_tail_angles) - 2)])[0]
-for i in range(1, len(tail_angle_frames)):
-    if tail_angle_frames[i] - tail_angle_frames[i - 1] == 2:
-        tail_angle_frames = np.append(tail_angle_frames, tail_angle_frames[i - 1] + 1)
-    elif tail_angle_frames[i] - tail_angle_frames[i - 1] == 3:
-        tail_angle_frames = np.append(tail_angle_frames, tail_angle_frames[i - 1] + 1)
-        tail_angle_frames = np.append(tail_angle_frames, tail_angle_frames[i - 1] + 2)
-
-for i in range(len(tail_angles)):
-    for j in tail_angle_frames:
-        tail_angles[i][j] = 0.0
+# tail_angle_frames = np.where([sum_tail_angles[i] == sum_tail_angles[i + 1] for i in range(len(sum_tail_angles) - 1)])[0]
+# for i in range(1, len(tail_angle_frames)):
+#     if tail_angle_frames[i] - tail_angle_frames[i - 1] == 2:
+#         tail_angle_frames = np.append(tail_angle_frames, tail_angle_frames[i - 1] + 1)
+#     elif tail_angle_frames[i] - tail_angle_frames[i - 1] == 3:
+#         tail_angle_frames = np.append(tail_angle_frames, tail_angle_frames[i - 1] + 1)
+#         tail_angle_frames = np.append(tail_angle_frames, tail_angle_frames[i - 1] + 2)
+#
+# for i in range(len(tail_angles)):
+#     for j in tail_angle_frames:
+#         tail_angles[i][j] = 0.0
 
 smoothed_tail_angles = [np.convolve(tail_angles[i], np.ones(smoothing_factor)/smoothing_factor, mode = 'same') for i in range(len(tail_angles))]
 

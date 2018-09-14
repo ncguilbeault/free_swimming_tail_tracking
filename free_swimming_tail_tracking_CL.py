@@ -1,6 +1,6 @@
 '''Software Written by Nicholas Guilbeault 2018'''
 
-import free_swimming_tail_utacking_UT as ut
+import free_swimming_tail_tracking_UT as ut
 import numpy as np
 
 # Create the video path.
