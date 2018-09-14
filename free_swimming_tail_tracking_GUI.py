@@ -21,8 +21,8 @@ class MainWindow(QMainWindow):
         self.get_main_window_attributes()
         self.add_menubar()
         self.add_options_to_menubar()
-        self.tracking_tab = TrackingTab()
-        self.setCentralWidget(self.tracking_tab)
+        self.main_tab = MainTab()
+        self.setCentralWidget(self.main_tab)
         self.setMenuBar(self.menubar)
         self.setWindowTitle('Free Swimming Tail Tracking')
         self.setWindowState(Qt.WindowMaximized)
@@ -73,24 +73,26 @@ class MainWindow(QMainWindow):
         self.options_menu.addAction(self.unload_all_action)
 
     def trigger_save_background(self):
-        self.tracking_tab.tracking_window.tracking_content.trigger_save_background()
+        self.main_tab.tracking_window.tracking_content.trigger_save_background()
     def trigger_calculate_background(self):
-        self.tracking_tab.tracking_window.tracking_content.trigger_calculate_background()
+        self.main_tab.tracking_window.tracking_content.trigger_calculate_background()
     def trigger_select_save_path(self):
-        self.tracking_tab.tracking_window.tracking_content.trigger_select_save_path()
+        self.main_tab.tracking_window.tracking_content.trigger_select_save_path()
     def trigger_load_background(self):
-        self.tracking_tab.tracking_window.tracking_content.trigger_load_background()
+        self.main_tab.tracking_window.tracking_content.trigger_load_background()
     def trigger_open_video(self):
-        self.tracking_tab.tracking_window.tracking_content.trigger_open_video()
+        self.main_tab.tracking_window.tracking_content.trigger_open_video()
     def trigger_unload_all(self):
-        self.tracking_tab.tracking_window.tracking_content.trigger_unload_all()
+        self.main_tab.tracking_window.tracking_content.trigger_unload_all()
 
-class TrackingTab(QTabWidget):
+class MainTab(QTabWidget):
 
     def __init__(self):
-        super(TrackingTab, self).__init__()
+        super(MainTab, self).__init__()
         self.tracking_window = TrackingWindow()
         self.addTab(self.tracking_window,"Tracking")
+        self.plotting_window = PlottingWindow()
+        self.addTab(self.plotting_window, "Plotting")
 
 class TrackingWindow(QScrollArea):
 
@@ -920,6 +922,7 @@ class TrackingContent(QMainWindow):
             if self.save_current_colours_button.isEnabled():
                 self.save_current_colours_button.setEnabled(False)
     def update_colours(self):
+        print(self.n_tail_points, len(self.colours))
         if self.n_tail_points < len(self.colours) - 3:
             for i in range(len(self.colours) - 3 - self.n_tail_points):
                 self.colour_label_list[len(self.colour_label_list) - 1].deleteLater()
@@ -1166,6 +1169,14 @@ class TrackingContent(QMainWindow):
             self.preview_background_subtracted_frame_checkbox.setChecked(False)
         if self.preview_tracking_results_checkbox.isChecked():
             self.preview_tracking_results_checkbox.setChecked(False)
+        for i in range(len(self.colours)):
+            print(i, len(self.colours), len(self.colour_label_list), len(self.colour_textbox_list), len(self.colour_button_list))
+            self.colour_label_list[-1].deleteLater()
+            self.colour_textbox_list[-1].deleteLater()
+            self.colour_button_list[-1].deleteLater()
+            del(self.colour_label_list[-1])
+            del(self.colour_textbox_list[-1])
+            del(self.colour_button_list[-1])
         self.initialize_class_variables()
         self.trigger_load_default_tracking_parameters()
         self.update_descriptors()
@@ -1180,6 +1191,9 @@ class TrackingContent(QMainWindow):
         self.update_tracking_parameters_buttons(inactivate = True)
         self.update_colour_parameters(inactivate = True)
         self.update_colour_parameters_buttons(inactivate = True)
+        self.update_colours()
+        self.trigger_load_default_colours()
+        self.update_colours()
     def trigger_update_single_colour(self, id):
         colour = QColorDialog.getColor().getRgb()[0:3]
         colour = (colour[0], colour[1], colour[2])
@@ -1374,6 +1388,15 @@ class TrackingThread(QThread):
             self.background_path = None
         ut.track_video(self.video_path, self.colours, self.n_tail_points, self.dist_tail_points, self.dist_eyes, self.dist_swim_bladder, n_frames = self.n_frames, starting_frame = self.starting_frame, save_path = self.save_path, background_path = self.background_path, line_length = self.line_length, video_fps = self.video_fps, pixel_threshold = self.pixel_threshold, frame_change_threshold = self.frame_change_threshold)
 
+class PlottingWindow(QScrollArea):
+
+    def __init__(self):
+        super(PlottingWindow, self).__init__()
+        self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
+        self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
+        # self.tracking_content = TrackingContent()
+        # self.setWidget(self.tracking_content)
+        # self.setWidgetResizable(True)
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
