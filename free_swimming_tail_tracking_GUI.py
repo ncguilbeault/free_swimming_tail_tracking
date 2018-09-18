@@ -5,10 +5,15 @@ import sys
 import os
 import subprocess
 import cv2
+import random
 import numpy as np
 import free_swimming_tail_tracking_UT as ut
 import matplotlib.cm as cm
 from functools import partial
+# from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.figure import Figure
+from matplotlib.backends.backend_qt5agg import FigureCanvas, NavigationToolbar2QT as NavigationToolbar
+import matplotlib.pyplot as plt
 
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
@@ -20,7 +25,8 @@ class MainWindow(QMainWindow):
         super(MainWindow, self).__init__(parent)
         self.get_main_window_attributes()
         self.add_menubar()
-        self.add_options_to_menubar()
+        self.add_tracking_options_to_menubar()
+        self.add_plotting_options_to_menubar()
         self.main_tab = MainTab()
         self.setCentralWidget(self.main_tab)
         self.setMenuBar(self.menubar)
@@ -33,44 +39,62 @@ class MainWindow(QMainWindow):
     def get_main_window_attributes(self):
         self.main_window_width = QDesktopWidget().availableGeometry().width()
         self.main_window_height = QDesktopWidget().availableGeometry().height()
-    def add_options_to_menubar(self):
-        self.options_menu = self.menubar.addMenu('&Options')
+    def add_tracking_options_to_menubar(self):
+        self.tracking_options_menu = self.menubar.addMenu('&Tracking Options')
 
         self.open_video_action = QAction('&Open Video', self)
         self.open_video_action.setShortcut('Ctrl+O')
         self.open_video_action.setStatusTip('Open Video')
         self.open_video_action.triggered.connect(self.trigger_open_video)
-        self.options_menu.addAction(self.open_video_action)
+        self.tracking_options_menu.addAction(self.open_video_action)
 
         self.select_save_path_action = QAction('&Select Save Path', self)
         self.select_save_path_action.setShortcut('Ctrl+P')
         self.select_save_path_action.setStatusTip('Select Save Path')
         self.select_save_path_action.triggered.connect(self.trigger_select_save_path)
-        self.options_menu.addAction(self.select_save_path_action)
+        self.tracking_options_menu.addAction(self.select_save_path_action)
 
         self.load_background_action = QAction('&Load Background', self)
         self.load_background_action.setShortcut('Ctrl+L')
         self.load_background_action.setStatusTip('Load Background')
         self.load_background_action.triggered.connect(self.trigger_load_background)
-        self.options_menu.addAction(self.load_background_action)
+        self.tracking_options_menu.addAction(self.load_background_action)
 
         self.calculate_background_action = QAction('&Calculate Background', self)
         self.calculate_background_action.setShortcut('Ctrl+B')
         self.calculate_background_action.setStatusTip('Calculate Background')
         self.calculate_background_action.triggered.connect(self.trigger_calculate_background)
-        self.options_menu.addAction(self.calculate_background_action)
+        self.tracking_options_menu.addAction(self.calculate_background_action)
 
         self.save_background_action = QAction('&Save Background', self)
         self.save_background_action.setShortcut('Ctrl+S')
         self.save_background_action.setStatusTip('Save Background')
         self.save_background_action.triggered.connect(self.trigger_save_background)
-        self.options_menu.addAction(self.save_background_action)
+        self.tracking_options_menu.addAction(self.save_background_action)
 
-        self.unload_all_action = QAction('&Unload All', self)
-        self.unload_all_action.setShortcut('Ctrl+U')
-        self.unload_all_action.setStatusTip('Unload All Things From Memory')
-        self.unload_all_action.triggered.connect(self.trigger_unload_all)
-        self.options_menu.addAction(self.unload_all_action)
+        self.unload_all_tracking_action = QAction('&Unload All Tracking', self)
+        self.unload_all_tracking_action.setShortcut('Ctrl+U')
+        self.unload_all_tracking_action.setStatusTip('Unload All Tracking From Memory')
+        self.unload_all_tracking_action.triggered.connect(self.trigger_unload_all_tracking)
+        self.tracking_options_menu.addAction(self.unload_all_tracking_action)
+    def add_plotting_options_to_menubar(self):
+        self.plotting_options_menu = self.menubar.addMenu('&Plotting Options')
+
+        self.load_tracking_results_action = QAction('&Load Tracking Results')
+        self.load_tracking_results_action.setStatusTip('Load Tracking Results')
+        self.load_tracking_results_action.triggered.connect(self.trigger_load_tracking_results)
+        self.plotting_options_menu.addAction(self.load_tracking_results_action)
+
+        self.open_tracked_video_action = QAction('&Open Tracked Video', self)
+        self.open_tracked_video_action.setShortcut('Ctrl+T')
+        self.open_tracked_video_action.setStatusTip('Open Tracked Video')
+        self.open_tracked_video_action.triggered.connect(self.trigger_open_tracked_video)
+        self.plotting_options_menu.addAction(self.open_tracked_video_action)
+
+        self.unload_all_plotting_action = QAction('&Unload All Plotting', self)
+        self.unload_all_plotting_action.setStatusTip('Unload All Plotting')
+        self.unload_all_plotting_action.triggered.connect(self.trigger_unload_all_plotting)
+        self.plotting_options_menu.addAction(self.unload_all_plotting_action)
 
     def trigger_save_background(self):
         self.main_tab.tracking_window.tracking_content.trigger_save_background()
@@ -82,8 +106,14 @@ class MainWindow(QMainWindow):
         self.main_tab.tracking_window.tracking_content.trigger_load_background()
     def trigger_open_video(self):
         self.main_tab.tracking_window.tracking_content.trigger_open_video()
-    def trigger_unload_all(self):
-        self.main_tab.tracking_window.tracking_content.trigger_unload_all()
+    def trigger_open_tracked_video(self):
+        self.main_tab.plotting_window.plotting_content.trigger_open_tracked_video()
+    def trigger_unload_all_tracking(self):
+        self.main_tab.tracking_window.tracking_content.trigger_unload_all_tracking()
+    def trigger_load_tracking_results(self):
+        self.main_tab.plotting_window.plotting_content.trigger_load_tracking_results()
+    def trigger_unload_all_plotting(self):
+        self.main_tab.plotting_window.plotting_content.trigger_unload_all_plotting()
 
 class MainTab(QTabWidget):
 
@@ -162,6 +192,7 @@ class TrackingContent(QMainWindow):
         self.line_length = 0
         self.pixel_threshold = 0
         self.frame_change_threshold = 0
+        self.preview_frame = None
         self.colours = []
 
     # Defining Get Functions
@@ -181,44 +212,44 @@ class TrackingContent(QMainWindow):
         self.background_height, self.background_width = self.background.shape
 
     # Defining Add Functions
-    def add_options_to_menubar(self):
-        self.options_menu = self.menubar.addMenu('&Options')
-
-        self.open_video_action = QAction('&Open Video', self)
-        self.open_video_action.setShortcut('Ctrl+O')
-        self.open_video_action.setStatusTip('Open Video')
-        self.open_video_action.triggered.connect(self.trigger_open_video)
-        self.options_menu.addAction(self.open_video_action)
-
-        self.select_save_path_action = QAction('&Select Save Path', self)
-        self.select_save_path_action.setShortcut('Ctrl+P')
-        self.select_save_path_action.setStatusTip('Select Save Path')
-        self.select_save_path_action.triggered.connect(self.trigger_select_save_path)
-        self.options_menu.addAction(self.select_save_path_action)
-
-        self.load_background_action = QAction('&Load Background', self)
-        self.load_background_action.setShortcut('Ctrl+L')
-        self.load_background_action.setStatusTip('Load Background')
-        self.load_background_action.triggered.connect(self.trigger_load_background)
-        self.options_menu.addAction(self.load_background_action)
-
-        self.calculate_background_action = QAction('&Calculate Background', self)
-        self.calculate_background_action.setShortcut('Ctrl+B')
-        self.calculate_background_action.setStatusTip('Calculate Background')
-        self.calculate_background_action.triggered.connect(self.trigger_calculate_background)
-        self.options_menu.addAction(self.calculate_background_action)
-
-        self.save_background_action = QAction('&Save Background', self)
-        self.save_background_action.setShortcut('Ctrl+S')
-        self.save_background_action.setStatusTip('Save Background')
-        self.save_background_action.triggered.connect(self.trigger_save_background)
-        self.options_menu.addAction(self.save_background_action)
-
-        self.unload_all_action = QAction('&Unload All', self)
-        self.unload_all_action.setShortcut('Ctrl+U')
-        self.unload_all_action.setStatusTip('Unload All Things From Memory')
-        self.unload_all_action.triggered.connect(self.trigger_unload_all)
-        self.options_menu.addAction(self.unload_all_action)
+    # def add_options_to_menubar(self):
+        # self.options_menu = self.menubar.addMenu('&Options')
+        #
+        # self.open_video_action = QAction('&Open Video', self)
+        # self.open_video_action.setShortcut('Ctrl+O')
+        # self.open_video_action.setStatusTip('Open Video')
+        # self.open_video_action.triggered.connect(self.trigger_open_video)
+        # self.options_menu.addAction(self.open_video_action)
+        #
+        # self.select_save_path_action = QAction('&Select Save Path', self)
+        # self.select_save_path_action.setShortcut('Ctrl+P')
+        # self.select_save_path_action.setStatusTip('Select Save Path')
+        # self.select_save_path_action.triggered.connect(self.trigger_select_save_path)
+        # self.options_menu.addAction(self.select_save_path_action)
+        #
+        # self.load_background_action = QAction('&Load Background', self)
+        # self.load_background_action.setShortcut('Ctrl+L')
+        # self.load_background_action.setStatusTip('Load Background')
+        # self.load_background_action.triggered.connect(self.trigger_load_background)
+        # self.options_menu.addAction(self.load_background_action)
+        #
+        # self.calculate_background_action = QAction('&Calculate Background', self)
+        # self.calculate_background_action.setShortcut('Ctrl+B')
+        # self.calculate_background_action.setStatusTip('Calculate Background')
+        # self.calculate_background_action.triggered.connect(self.trigger_calculate_background)
+        # self.options_menu.addAction(self.calculate_background_action)
+        #
+        # self.save_background_action = QAction('&Save Background', self)
+        # self.save_background_action.setShortcut('Ctrl+S')
+        # self.save_background_action.setStatusTip('Save Background')
+        # self.save_background_action.triggered.connect(self.trigger_save_background)
+        # self.options_menu.addAction(self.save_background_action)
+        #
+        # self.unload_all_action = QAction('&Unload All', self)
+        # self.unload_all_action.setShortcut('Ctrl+U')
+        # self.unload_all_action.setStatusTip('Unload All Things From Memory')
+        # self.unload_all_action.triggered.connect(self.trigger_unload_all)
+        # self.options_menu.addAction(self.unload_all_action)
     def add_preview_frame_window(self):
         font = QFont()
         font.setPointSize(18)
@@ -716,7 +747,7 @@ class TrackingContent(QMainWindow):
         self.background_path_folder_descriptor.setText('Background Folder: {0}'.format(self.background_path_folder))
         self.background_path_basename_descriptor.setText('Background Filename: {0}'.format(self.background_path_basename))
         self.save_path_descriptor.setText('Save Path: {0}'.format(self.save_path))
-    def update_preview_frame(self, frame, frame_width, frame_height, inactivate = False, grayscale = True):
+    def update_preview_frame(self, frame, frame_width, frame_height, grayscale = True):
         if grayscale:
             format = QImage.Format_Indexed8
         else:
@@ -1111,7 +1142,8 @@ class TrackingContent(QMainWindow):
         self.pixel_threshold = 40
         self.frame_change_threshold = 10
         self.update_tracking_parameters()
-        self.trigger_update_preview()
+        if self.preview_frame:
+            self.trigger_update_preview()
     def trigger_load_previous_tracking_parameters(self):
         try:
             tracking_parameters = np.load('tracking_parameters.npy').item()
@@ -1161,7 +1193,7 @@ class TrackingContent(QMainWindow):
         #     background_path = None
         # colours = [(self.colours[i][2], self.colours[i][1], self.colours[i][0]) for i in range(len(self.colours))]
         # ut.track_video(self.video_path, colours, self.n_tail_points, self.dist_tail_points, self.dist_eyes, self.dist_swim_bladder, n_frames = self.n_frames, starting_frame = self.starting_frame, save_path = self.save_path, background_path = background_path, line_length = self.line_length, video_fps = self.video_fps, pixel_threshold = self.pixel_threshold, frame_change_threshold = self.frame_change_threshold)
-    def trigger_unload_all(self):
+    def trigger_unload_all_tracking(self):
         if self.preview_background_checkbox.isChecked():
             self.preview_background_checkbox.setChecked(False)
         if self.preview_background_subtracted_frame_checkbox.isChecked():
@@ -1410,16 +1442,432 @@ class TrackVideoThread(QThread):
 #             self.background_path = None
 #         ut.track_video(self.video_path, self.colours, self.n_tail_points, self.dist_tail_points, self.dist_eyes, self.dist_swim_bladder, n_frames = self.n_frames, starting_frame = self.starting_frame, save_path = self.save_path, background_path = self.background_path, line_length = self.line_length, video_fps = self.video_fps, pixel_threshold = self.pixel_threshold, frame_change_threshold = self.frame_change_threshold)
 
-
 class PlottingWindow(QScrollArea):
 
     def __init__(self):
         super(PlottingWindow, self).__init__()
         self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
         self.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
-        # self.tracking_content = TrackingContent()
-        # self.setWidget(self.tracking_content)
-        # self.setWidgetResizable(True)
+        self.plotting_content = PlottingContent()
+        self.setWidget(self.plotting_content)
+
+class PlottingContent(QMainWindow):
+
+    # Defining Initialization Functions
+    def __init__(self):
+        super(PlottingContent, self).__init__()
+        self.initUI()
+    def initUI(self):
+        self.initialize_class_variables()
+        self.add_tracking_preview_frame_window()
+        self.add_frame_window_slider()
+        self.add_preview_frame_number_textbox()
+        self.add_update_preview_button()
+        self.add_frame_change_buttons()
+        # self.add_canvas()
+        self.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Ignored)
+        self.resize(2560, 1400)
+        self.show()
+    def initialize_class_variables(self):
+        self.frame_number = 1
+        self.video_path = None
+
+    def get_video_attributes(self):
+        self.video_path_folder = os.path.dirname(self.video_path)
+        self.video_path_basename = os.path.basename(self.video_path)
+        self.video_n_frames = ut.get_total_frame_number_from_video(self.video_path)
+        self.video_fps = ut.get_fps_from_video(self.video_path)
+        self.video_format = ut.get_video_format_from_video(self.video_path)
+        self.video_frame_width, self.video_frame_height = ut.get_frame_size_from_video(self.video_path)
+
+    def add_tracking_preview_frame_window(self):
+        font = QFont()
+        font.setPointSize(18)
+        self.preview_frame_window = QLabel(self)
+        self.preview_frame_window.setFrameShape(QFrame.Panel)
+        self.preview_frame_window.setFrameShadow(QFrame.Sunken)
+        self.preview_frame_window.setLineWidth(5)
+        self.preview_frame_window.move(5, 25)
+        self.preview_frame_window.resize(1000, 1000)
+        self.preview_frame_window.setText('Tracking Preview Frame Window')
+        self.preview_frame_window.setAlignment(Qt.AlignHCenter | Qt.AlignTop)
+        self.preview_frame_window.setFont(font)
+    def add_frame_window_slider(self):
+        self.frame_window_slider = QSlider(Qt.Horizontal, self)
+        self.frame_window_slider.setToolTip('Move slider to change preview frame number.')
+        self.frame_window_slider.move(5, 1035)
+        self.frame_window_slider.resize(1000, 20)
+        self.frame_window_slider.setEnabled(False)
+        self.frame_window_slider.setTickInterval(0)
+        self.frame_window_slider.setSingleStep(0)
+        self.frame_window_slider.sliderMoved.connect(self.check_frame_window_slider_moved)
+        self.update_frame_window_slider(inactivate = True)
+    def add_preview_frame_number_textbox(self):
+        font = QFont()
+        font.setPointSize(10)
+        self.preview_frame_number_textbox_label = QLabel(self)
+        self.preview_frame_number_textbox_label.move(5, 1060)
+        self.preview_frame_number_textbox_label.resize(145, 20)
+        self.preview_frame_number_textbox_label.setText('Preview Frame Number: ')
+        self.preview_frame_number_textbox_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        self.preview_frame_number_textbox_label.setFont(font)
+        self.preview_frame_number_textbox = QLineEdit(self)
+        self.preview_frame_number_textbox.move(150, 1060)
+        self.preview_frame_number_textbox.resize(100, 20)
+        self.preview_frame_number_textbox.setAlignment(Qt.AlignLeft | Qt.AlignTop)
+        self.preview_frame_number_textbox.setFont(font)
+        self.preview_frame_number_textbox.returnPressed.connect(self.check_preview_frame_number_textbox)
+        self.update_preview_frame_number_textbox(inactivate = True)
+    def add_update_preview_button(self):
+        font = QFont()
+        font.setPointSize(10)
+        self.update_preview_button = QPushButton('Update Preview', self)
+        self.update_preview_button.move(5, 1090)
+        self.update_preview_button.resize(245, 50)
+        self.update_preview_button.setFont(font)
+        self.update_preview_button.clicked.connect(self.check_preview_frame_number_textbox)
+        self.update_update_preview_button(inactivate = True)
+    def add_frame_change_buttons(self):
+        self.large_frame_decrease_button = QPushButton(self)
+        self.large_frame_decrease_button.setIcon(QIcon('button_icon_1.png'))
+        self.large_frame_decrease_button.setIconSize(QSize(76, 76))
+        self.large_frame_decrease_button.move(260, 1060)
+        self.large_frame_decrease_button.resize(80, 80)
+        self.large_frame_decrease_button.clicked.connect(self.check_large_frame_decrease_button)
+
+        self.medium_frame_decrease_button = QPushButton(self)
+        self.medium_frame_decrease_button.setIcon(QIcon('button_icon_2.png'))
+        self.medium_frame_decrease_button.setIconSize(QSize(76, 76))
+        self.medium_frame_decrease_button.move(345, 1060)
+        self.medium_frame_decrease_button.resize(80, 80)
+        self.medium_frame_decrease_button.clicked.connect(self.check_medium_frame_decrease_button)
+
+        self.small_frame_decrease_button = QPushButton(self)
+        self.small_frame_decrease_button.setIcon(QIcon('button_icon_3.png'))
+        self.small_frame_decrease_button.setIconSize(QSize(76, 76))
+        self.small_frame_decrease_button.move(430, 1060)
+        self.small_frame_decrease_button.resize(80, 80)
+        self.small_frame_decrease_button.clicked.connect(self.check_small_frame_decrease_button)
+
+        self.small_frame_increase_button = QPushButton(self)
+        self.small_frame_increase_button.setIcon(QIcon('button_icon_4.png'))
+        self.small_frame_increase_button.setIconSize(QSize(76, 76))
+        self.small_frame_increase_button.move(515, 1060)
+        self.small_frame_increase_button.resize(80, 80)
+        self.small_frame_increase_button.clicked.connect(self.check_small_frame_increase_button)
+
+        self.medium_frame_increase_button = QPushButton(self)
+        self.medium_frame_increase_button.setIcon(QIcon('button_icon_5.png'))
+        self.medium_frame_increase_button.setIconSize(QSize(76, 76))
+        self.medium_frame_increase_button.move(600, 1060)
+        self.medium_frame_increase_button.resize(80, 80)
+        self.medium_frame_increase_button.clicked.connect(self.check_medium_frame_increase_button)
+
+        self.large_frame_increase_button = QPushButton(self)
+        self.large_frame_increase_button.setIcon(QIcon('button_icon_6.png'))
+        self.large_frame_increase_button.setIconSize(QSize(76, 76))
+        self.large_frame_increase_button.move(685, 1060)
+        self.large_frame_increase_button.resize(80, 80)
+        self.large_frame_increase_button.clicked.connect(self.check_large_frame_increase_button)
+        self.update_frame_change_buttons(inactivate = True)
+    def add_canvas(self):
+        self.canvas = PlottingCanvas()
+    # def add_heading_angle_plot(self):
+
+    def update_preview_frame(self, frame, frame_width, frame_height):
+        format = QImage.Format_RGB888
+        self.preview_frame = QImage(frame.data, frame_width, frame_height, format)
+        if frame_height > 1000 and frame_height > frame_width:
+           self.preview_frame = self.preview_frame.scaledToHeight(1000)
+        elif frame_width > 1000:
+           self.preview_frame = self.preview_frame.scaledToWidth(1000)
+        frame = cv2.resize(frame, dsize=(self.preview_frame.width(), self.preview_frame.height()), interpolation=cv2.INTER_CUBIC).copy()
+        self.preview_frame = QImage(frame.data, self.preview_frame.width(), self.preview_frame.height(), format)
+    def update_preview_frame_window(self, clear = False):
+        if not clear:
+            self.preview_frame_window.setPixmap(QPixmap.fromImage(self.preview_frame))
+        else:
+            self.preview_frame_window.clear()
+    def update_frame_window_slider(self, activate = False, inactivate = False):
+        if activate:
+            if not self.frame_window_slider.isEnabled():
+                self.frame_window_slider.setEnabled(True)
+                self.frame_window_slider.setTickPosition(QSlider.TicksBelow)
+        if inactivate:
+            if self.frame_window_slider.isEnabled():
+                self.frame_window_slider.setEnabled(False)
+                self.frame_window_slider.setTickPosition(QSlider.NoTicks)
+        if self.frame_window_slider.isEnabled():
+            self.frame_window_slider.setMinimum(1)
+            self.frame_window_slider.setMaximum(self.video_n_frames)
+            self.frame_window_slider.setValue(self.frame_number)
+        else:
+            self.frame_window_slider.setMinimum(0)
+            self.frame_window_slider.setMaximum(0)
+            self.frame_window_slider.setValue(0)
+    def update_preview_frame_number_textbox(self, activate = False, inactivate = False):
+        if activate:
+            if not self.preview_frame_number_textbox.isEnabled():
+                self.preview_frame_number_textbox.setEnabled(True)
+        if inactivate:
+            if self.preview_frame_number_textbox.isEnabled():
+                self.preview_frame_number_textbox.setEnabled(False)
+        if self.preview_frame_number_textbox.isEnabled():
+            self.preview_frame_number_textbox.setText('{0}'.format(self.frame_number))
+        else:
+            self.preview_frame_number_textbox.setText('{0}'.format(0))
+    def update_update_preview_button(self, activate = False, inactivate = False):
+        if activate:
+            if not self.update_preview_button.isEnabled():
+                self.update_preview_button.setEnabled(True)
+        if inactivate:
+            if self.update_preview_button.isEnabled():
+                self.update_preview_button.setEnabled(False)
+    def update_frame_change_buttons(self, activate = False, inactivate = False):
+        if activate:
+            if not self.large_frame_decrease_button.isEnabled():
+                self.large_frame_decrease_button.setEnabled(True)
+            if not self.medium_frame_decrease_button.isEnabled():
+                self.medium_frame_decrease_button.setEnabled(True)
+            if not self.small_frame_decrease_button.isEnabled():
+                self.small_frame_decrease_button.setEnabled(True)
+            if not self.small_frame_increase_button.isEnabled():
+                self.small_frame_increase_button.setEnabled(True)
+            if not self.medium_frame_increase_button.isEnabled():
+                self.medium_frame_increase_button.setEnabled(True)
+            if not self.large_frame_increase_button.isEnabled():
+                self.large_frame_increase_button.setEnabled(True)
+        if inactivate:
+            if self.large_frame_decrease_button.isEnabled():
+                self.large_frame_decrease_button.setEnabled(False)
+            if self.medium_frame_decrease_button.isEnabled():
+                self.medium_frame_decrease_button.setEnabled(False)
+            if self.small_frame_decrease_button.isEnabled():
+                self.small_frame_decrease_button.setEnabled(False)
+            if self.small_frame_increase_button.isEnabled():
+                self.small_frame_increase_button.setEnabled(False)
+            if self.medium_frame_increase_button.isEnabled():
+                self.medium_frame_increase_button.setEnabled(False)
+            if self.large_frame_increase_button.isEnabled():
+                self.large_frame_increase_button.setEnabled(False)
+    def update_frame_window_slider_position(self):
+        self.frame_window_slider.setValue(self.frame_number)
+        
+    def trigger_open_tracked_video(self):
+        self.video_path, _ = QFileDialog.getOpenFileName(self, "Open Video File", "","Video Files (*.avi)", options = QFileDialog.Options())
+        if self.video_path:
+            self.get_video_attributes()
+            success, self.frame = ut.load_frame_into_memory(self.video_path, self.frame_number - 1, convert_to_grayscale = False)
+            if success and self.frame is not None:
+                self.update_preview_frame(self.frame, self.video_frame_width, self.video_frame_height)
+                self.update_preview_frame_window()
+                self.update_frame_window_slider(activate = True)
+                self.update_preview_frame_number_textbox(activate = True)
+                self.update_update_preview_button(activate = True)
+                self.update_frame_change_buttons(activate = True)
+    def trigger_update_preview(self):
+        if self.video_path is not None:
+            success, self.frame = ut.load_frame_into_memory(self.video_path, self.frame_number - 1, convert_to_grayscale = False)
+            if success and self.frame is not None:
+                self.update_preview_frame(self.frame, self.video_frame_width, self.video_frame_height)
+                self.update_preview_frame_window()
+                self.update_frame_window_slider(activate = True)
+                self.update_preview_frame_number_textbox(activate = True)
+                self.update_update_preview_button(activate = True)
+                self.update_frame_change_buttons(activate = True)
+    def trigger_load_tracking_results(self):
+        self.tracking_data_path, _ = QFileDialog.getOpenFileName(self, "Open Tracking Data", "","Tracking Data (*.npy)", options = QFileDialog.Options())
+        if self.tracking_data_path:
+            data = np.load(self.tracking_data_path).item()
+            self.heading_angle_array = data['heading_angle_array']
+            self.tail_coord_array = data['tail_coord_array']
+            self.body_coord_array = data['body_coord_array']
+            self.eye_angle_array = data['eye_angle_array']
+            self.video_n_frames = data['video_n_frames']
+            self.video_fps = data['video_fps']
+            self.colours = data['colours']
+            self.colours = [[self.colours[i][2]/255, self.colours[i][1]/255, self.colours[i][0]/255] for i in range(len(self.colours))]
+            self.dist_tail_points = data['dist_tail_points']
+            self.dist_eyes = data['dist_eyes']
+            self.dist_swim_bladder = data['dist_swim_bladder']
+            self.eyes_threshold = data['eyes_threshold']
+            self.pixel_threshold = data['pixel_threshold']
+            self.frame_change_threshold = data['frame_change_threshold']
+            # self.add_canvas()
+    def trigger_unload_all_plotting(self):
+        self.initialize_class_variables()
+        self.update_preview_frame_window(clear = True)
+        self.update_frame_window_slider(inactivate = True)
+        self.update_preview_frame_number_textbox(inactivate = True)
+        self.update_update_preview_button(inactivate = True)
+        self.update_frame_change_buttons(inactivate = True)
+        self.update_frame_window_slider_position()
+
+    def check_preview_frame_number_textbox(self):
+        if self.preview_frame_number_textbox.text().isdigit():
+            if int(self.preview_frame_number_textbox.text()) > self.video_n_frames:
+                self.frame_number = self.video_n_frames
+            else:
+                if int(self.preview_frame_number_textbox.text()) != 0:
+                    self.frame_number = int(self.preview_frame_number_textbox.text())
+                else:
+                    self.frame_number = 1
+        self.trigger_update_preview()
+    def check_frame_window_slider_moved(self):
+        self.frame_number = int(self.frame_window_slider.sliderPosition())
+        self.trigger_update_preview()
+    def check_large_frame_decrease_button(self):
+        self.frame_number -= 100
+        if self.frame_number < 1:
+            self.frame_number = 1
+        self.trigger_update_preview()
+    def check_medium_frame_decrease_button(self):
+        self.frame_number -= 10
+        if self.frame_number < 1:
+            self.frame_number = 1
+        self.trigger_update_preview()
+    def check_small_frame_decrease_button(self):
+        self.frame_number -= 1
+        if self.frame_number < 1:
+            self.frame_number = 1
+        self.trigger_update_preview()
+    def check_small_frame_increase_button(self):
+        self.frame_number += 1
+        if self.frame_number > self.video_n_frames:
+            self.frame_number = self.video_n_frames
+        self.trigger_update_preview()
+    def check_medium_frame_increase_button(self):
+        self.frame_number += 10
+        if self.frame_number > self.video_n_frames:
+            self.frame_number = self.video_n_frames
+        self.trigger_update_preview()
+    def check_large_frame_increase_button(self):
+        self.frame_number += 100
+        if self.frame_number > self.video_n_frames:
+            self.frame_number = self.video_n_frames
+        self.trigger_update_preview()
+
+    # Defining Event Functions
+    def closeEvent(self, event):
+        event.accept()
+
+# class PlottingCanvas(FigureCanvas):
+#
+#     def __init__(self):
+#         super(PlottingCanvas, self).__init__()
+#         # self.initUI()
+#         self._dynamic_ax = dynamic_canvas.figure.subplots()
+#         self._timer = dynamic_canvas.new_timer(
+#             100, [(self._update_canvas, (), {})])
+#         self._timer.start()
+#
+#     def _update_canvas(self):
+#         self._dynamic_ax.clear()
+#         t = np.linspace(0, 10, 101)
+#         # Shift the sinusoid as a function of time.
+#         self._dynamic_ax.plot(t, np.sin(t + time.time()))
+#         self._dynamic_ax.figure.canvas.draw()
+#     # def initUI(self, parent = None, width = 4, height = 5, dpi = 100):
+#
+#         # fig = Figure(figsize=(width, height), dpi=dpi)
+#         # self.axes = fig.add_subplot(111)
+#
+#         # FigureCanvas.__init__(self, fig)
+#         # self.setParent(parent)
+#         #
+#         # FigureCanvas.setSizePolicy(self,
+#         #         QSizePolicy.Expanding,
+#         #         QSizePolicy.Expandi ng)
+#         # FigureCanvas.updateGeometry(self)
+#         # self.plot()
+#
+#
+#     def plot(self):
+#         data = [random.random() for i in range(25)]
+#         ax = self.figure.add_subplot(111)
+#         ax.plot(data, 'r-')
+#         ax.set_title('PyQt Matplotlib Example')
+#         self.draw()
+#
+# class PlottingData(FigureCanvas):
+#
+#     def __init__(self):
+#         super(PlottingContent, self).__init__()
+#         self.initUI()
+#
+#     def initUI(self):
+#         self.initialize_class_variables()
+#
+#     def initialize_class_variables(self):
+#         self.smoothing_factor = 3
+#
+#         self.tail_angles = [[np.arctan2(self.tail_coord_array[j][i + 1][0] - self.tail_coord_array[j][i][0], self.tail_coord_array[j][i + 1][1] - self.tail_coord_array[j][i][1]) for i in range(len(self.tail_coord_array[0]) - 1)] for j in range(len(self.tail_coord_array))]
+#         self.body_tail_angles = [np.arctan2(self.tail_coord_array[j][0][0] - self.body_coord_array[j][0], self.tail_coord_array[j][0][1] - self.body_coord_array[j][1]) for j in range(len(self.tail_coord_array))]
+#         self.tail_angles = [[self.tail_angles[j][i] - self.body_tail_angles[j] for i in range(len(self.tail_angles[0]))] for j in range(len(self.tail_angles))]
+#         self.tail_angles = [[self.tail_angles[i][j] for i in range(len(self.tail_angles))] for j in range(len(self.tail_angles[0]))]
+#
+#         for i in range(len(self.tail_angles)):
+#             for j in range(1, len(self.tail_angles[i])):
+#                 if self.tail_angles[i][j] >= 0.9 * np.pi:
+#                     self.tail_angles[i][j] -= np.pi * 2
+#                 elif self.tail_angles[i][j] <= 0.9 * -np.pi:
+#                     self.tail_angles[i][j] += np.pi * 2
+#
+#         self.sum_tail_angles = [np.sum([abs(self.tail_angles[i][j]) for i in range(len(self.tail_angles))]) for j in range(len(self.tail_angles[0]))]
+#         self.tail_angle_frames = np.where([self.sum_tail_angles[i] == self.sum_tail_angles[i + 1] == self.sum_tail_angles[i + 2] for i in range(len(self.sum_tail_angles) - 2)])[0]
+#         self.smoothed_tail_angles = [np.convolve(self.tail_angles[i], np.ones(self.smoothing_factor)/self.smoothing_factor, mode = 'same') for i in range(len(self.tail_angles))]
+#
+#         j = 0
+#         if np.isnan(self.heading_angle_array[0]):
+#             while np.isnan(self.heading_angle_array[0]):
+#                 if not np.isnan(self.heading_angle_array[j]):
+#                     self.heading_angle_array[0] = self.heading_angle_array[j]
+#                 j += 1
+#
+#         self.heading_angles = np.array([self.heading_angle_array[i] - self.heading_angle_array[0] for i in range(len(self.heading_angle_array))])
+#
+#         i = 0
+#         for j in range(len(self.heading_angles)):
+#             if j not in self.tail_angle_frames:
+#                 i = j
+#             else:
+#                 self.heading_angles[j] = self.heading_angles[i]
+#
+#         for i in range(1, len(self.heading_angles)):
+#             if self.heading_angles[i] - self.heading_angles[i - 1] > np.pi:
+#                 self.heading_angles[i:] -= np.pi * 2
+#             elif self.heading_angles[i] - self.heading_angles[i - 1] < -np.pi:
+#                 self.heading_angles[i:] += np.pi * 2
+#
+#         self.smoothed_heading_angles = np.convolve(self.heading_angles, np.ones(self.smoothing_factor)/self.smoothing_factor, mode = 'same')
+#
+#         self.eye_angles = [[self.eye_angle_array[i][j] - self.heading_angle_array[i] for i in range(len(self.eye_angle_array))] for j in range(len(self.eye_angle_array[0]))]
+#
+#         i = 0
+#         for k in range(len(self.eye_angles)):
+#             for j in range(len(self.eye_angles[k])):
+#                 if j not in self.tail_angle_frames:
+#                     i = j
+#                 else:
+#                     self.eye_angles[k][j] = self.eye_angles[k][i]
+#
+#         for j in range(len(self.eye_angles)):
+#             for i in range(1, len(self.eye_angles[j])):
+#                 if self.eye_angles[j][i] - self.eye_angles[j][i - 1] > np.pi * 0.9:
+#                     self.eye_angles[j][i] -= np.pi * 2
+#                 elif self.eye_angles[j][i] - self.eye_angles[j][i - 1] < -np.pi * 0.9:
+#                     self.eye_angles[j][i] += np.pi * 2
+#
+#         for j in range(len(self.eye_angles)):
+#             for i in range(1, len(self.eye_angles[j])):
+#                 if self.eye_angles[j][i] > np.pi:
+#                     self.eye_angles[j][i] -= np.pi * 2
+#                 elif self.eye_angles[j][i] < -np.pi:
+#                     self.eye_angles[j][i] += np.pi * 2
+#
+#         self.smoothed_eye_angles = [np.convolve(self.eye_angles[i], np.ones(self.smoothing_factor)/self.smoothing_factor, mode = 'same') for i in range(len(self.eye_angles))]
+#
+#         self.timepoints = np.linspace(0, self.video_n_frames / self.video_fps, self.video_n_frames)
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)

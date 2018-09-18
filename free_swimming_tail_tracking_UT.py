@@ -247,8 +247,11 @@ def load_frame_into_memory(video_path, frame_number = 0, convert_to_grayscale = 
 
     success, original_frame = capture.read()
     frame = None
-    if success and convert_to_grayscale:
-        frame = cv2.cvtColor(original_frame, cv2.COLOR_BGR2GRAY).astype(np.uint8)
+    if success:
+        if convert_to_grayscale:
+            frame = cv2.cvtColor(original_frame, cv2.COLOR_BGR2GRAY).astype(np.uint8).copy()
+        else:
+            frame = original_frame.astype(np.uint8).copy()
 
     return success, frame
 
