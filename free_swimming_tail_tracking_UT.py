@@ -708,7 +708,7 @@ def track_tail_in_video_without_multiprocessing(video_path, colours, n_tail_poin
 
     return results
 
-def track_video(video_path, colours, n_tail_points, dist_tail_points, dist_eyes, dist_swim_bladder, n_frames = None, starting_frame = 0, save_path = None, background_path = None, save_background = True, extended_eyes_calculation = False,  eyes_threshold = None, line_length = 0, video_fps = None, pixel_threshold = 100, frame_change_threshold = 10):
+def track_video(video_path, colours, n_tail_points, dist_tail_points, dist_eyes, dist_swim_bladder, save_video = True, n_frames = None, starting_frame = 0, save_path = None, background_path = None, save_background = True, extended_eyes_calculation = False,  eyes_threshold = None, line_length = 0, video_fps = None, pixel_threshold = 100, frame_change_threshold = 10):
     '''
     Tracks a video.
 
@@ -804,11 +804,12 @@ def track_video(video_path, colours, n_tail_points, dist_tail_points, dist_eyes,
     # Set the frame position to start.
     capture.set(cv2.CAP_PROP_POS_FRAMES, starting_frame)
 
-    # Create a path for the video once it is tracked.
-    save_video_path = "{0}\\{1}_tracked.avi".format(save_path, os.path.basename(video_path)[:-4])
+    if save_video:
+        # Create a path for the video once it is tracked.
+        save_video_path = "{0}\\{1}_tracked.avi".format(save_path, os.path.basename(video_path)[:-4])
 
-    # Create video writer.
-    writer = cv2.VideoWriter(save_video_path, 0, video_fps, frame_size)
+        # Create video writer.
+        writer = cv2.VideoWriter(save_video_path, 0, video_fps, frame_size)
 
     # Initialize variables for data.
     eye_coord_array = []
@@ -946,32 +947,34 @@ def track_video(video_path, colours, n_tail_points, dist_tail_points, dist_eyes,
                         if extended_eyes_calculation:
                             # Set the previous eye angle to the current eye angle.
                             prev_eye_angle = eye_angle
-                    # Check whether to to an additional process to calculate eye angles.
-                    if extended_eyes_calculation:
-                        # Draw a circle arround the first eye coordinates.
-                        original_frame = cv2.circle(original_frame, (first_eye_coords[1], first_eye_coords[0]), 1, colours[-3], -1)
-                        # Draw a line representing the first eye angle.
-                        original_frame = cv2.line(original_frame, (first_eye_coords[1], first_eye_coords[0]), (int(round(first_eye_coords[1] + (line_length * np.cos(first_eye_angle)))), int(round(first_eye_coords[0] + (line_length * np.sin(first_eye_angle))))), colours[-3], 1)
-                        # Draw a circle around the second eye coordinates.
-                        original_frame = cv2.circle(original_frame, (second_eye_coords[1], second_eye_coords[0]), 1, colours[-2], - 1)
-                        # Draw a line representing the second eye angle.
-                        original_frame = cv2.line(original_frame, (second_eye_coords[1], second_eye_coords[0]), (int(round(second_eye_coords[1] + (line_length * np.cos(second_eye_angle)))), int(round(second_eye_coords[0] + (line_length * np.sin(second_eye_angle))))), colours[-2], 1)
-                    else:
-                        # Draw a circle arround the first eye coordinates.
-                        original_frame = cv2.circle(original_frame, (first_eye_coords[1], first_eye_coords[0]), 1, colours[-2], -1)
-                        # Draw a circle arround the second eye coordinates.
-                        original_frame = cv2.circle(original_frame, (second_eye_coords[1], second_eye_coords[0]), 1, colours[-2], - 1)
-                    # Iterate through each set of tail points.
-                    for m in range(n_tail_points):
-                        # Check if this is the first tail point
-                        if m == 0:
-                            # For the first tail point, draw around the midpoint of the line that connects the swim bladder to the first tail point.
-                            original_frame = cv2.circle(original_frame, (int(round((swim_bladder_coords[1] + tail_point_coords[m][1]) / 2)), int(round((swim_bladder_coords[0] + tail_point_coords[m][0]) / 2))), 1, colours[m], -1)
+
+                    if save_video:
+                        # Check whether to to an additional process to calculate eye angles.
+                        if extended_eyes_calculation:
+                            # Draw a circle arround the first eye coordinates.
+                            original_frame = cv2.circle(original_frame, (first_eye_coords[1], first_eye_coords[0]), 1, colours[-3], -1)
+                            # Draw a line representing the first eye angle.
+                            original_frame = cv2.line(original_frame, (first_eye_coords[1], first_eye_coords[0]), (int(round(first_eye_coords[1] + (line_length * np.cos(first_eye_angle)))), int(round(first_eye_coords[0] + (line_length * np.sin(first_eye_angle))))), colours[-3], 1)
+                            # Draw a circle around the second eye coordinates.
+                            original_frame = cv2.circle(original_frame, (second_eye_coords[1], second_eye_coords[0]), 1, colours[-2], - 1)
+                            # Draw a line representing the second eye angle.
+                            original_frame = cv2.line(original_frame, (second_eye_coords[1], second_eye_coords[0]), (int(round(second_eye_coords[1] + (line_length * np.cos(second_eye_angle)))), int(round(second_eye_coords[0] + (line_length * np.sin(second_eye_angle))))), colours[-2], 1)
                         else:
-                            # For all subsequent tail points, draw around the midpoint of the line that connects the previous tail point to the current tail point.
-                            original_frame = cv2.circle(original_frame, (int(round((tail_point_coords[m - 1][1] + tail_point_coords[m][1]) / 2)), int(round((tail_point_coords[m - 1][0] + tail_point_coords[m][0]) / 2))), 1, colours[m], -1)
-                    # Draw an arrow for the heading angle.
-                    original_frame = cv2.arrowedLine(original_frame, (int(round(heading_coords[1] - (line_length / 2 * np.cos(heading_angle)))), int(round(heading_coords[0] - (line_length / 2 * np.sin(heading_angle))))), (int(round(heading_coords[1] + (line_length * np.cos(heading_angle)))), int(round(heading_coords[0] + (line_length * np.sin(heading_angle))))), colours[-1], 1, tipLength = 0.2)
+                            # Draw a circle arround the first eye coordinates.
+                            original_frame = cv2.circle(original_frame, (first_eye_coords[1], first_eye_coords[0]), 1, colours[-2], -1)
+                            # Draw a circle arround the second eye coordinates.
+                            original_frame = cv2.circle(original_frame, (second_eye_coords[1], second_eye_coords[0]), 1, colours[-2], - 1)
+                        # Iterate through each set of tail points.
+                        for m in range(n_tail_points):
+                            # Check if this is the first tail point
+                            if m == 0:
+                                # For the first tail point, draw around the midpoint of the line that connects the swim bladder to the first tail point.
+                                original_frame = cv2.circle(original_frame, (int(round((swim_bladder_coords[1] + tail_point_coords[m][1]) / 2)), int(round((swim_bladder_coords[0] + tail_point_coords[m][0]) / 2))), 1, colours[m], -1)
+                            else:
+                                # For all subsequent tail points, draw around the midpoint of the line that connects the previous tail point to the current tail point.
+                                original_frame = cv2.circle(original_frame, (int(round((tail_point_coords[m - 1][1] + tail_point_coords[m][1]) / 2)), int(round((tail_point_coords[m - 1][0] + tail_point_coords[m][0]) / 2))), 1, colours[m], -1)
+                        # Draw an arrow for the heading angle.
+                        original_frame = cv2.arrowedLine(original_frame, (int(round(heading_coords[1] - (line_length / 2 * np.cos(heading_angle)))), int(round(heading_coords[0] - (line_length / 2 * np.sin(heading_angle))))), (int(round(heading_coords[1] + (line_length * np.cos(heading_angle)))), int(round(heading_coords[0] + (line_length * np.sin(heading_angle))))), colours[-1], 1, tipLength = 0.2)
             except:
                 # Handles any errors that occur throughout tracking.
                 first_eye_coords = [np.nan, np.nan]
@@ -998,13 +1001,15 @@ def track_video(video_path, colours, n_tail_points, dist_tail_points, dist_eyes,
             tail_coord_array.append(tail_points)
             body_coord_array.append(body_coords)
             heading_angle_array.append(heading_angle)
-            # Write the new frame that contains the annotated frame with tracked points to a new video.
-            writer.write(original_frame)
+            if save_video:
+                # Write the new frame that contains the annotated frame with tracked points to a new video.
+                writer.write(original_frame)
 
     print('Tracking video. Processing frame number: {0} / {1}.'.format(n + 1, n_frames))
     # Unload the video and writer from memory.
     capture.release()
-    writer.release()
+    if save_video:
+        writer.release()
 
     # Create a dictionary that contains all of the results.
     results =   {   'eye_coord_array' : eye_coord_array,

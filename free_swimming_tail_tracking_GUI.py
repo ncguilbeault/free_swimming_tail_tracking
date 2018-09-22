@@ -33,6 +33,7 @@ class MainWindow(QMainWindow):
         self.setWindowTitle('Free Swimming Tail Tracking')
         self.setWindowState(Qt.WindowMaximized)
         self.show()
+
     def add_menubar(self):
         self.menubar = QMenuBar()
         self.menubar.resize(self.main_window_width, self.menubar.height())
@@ -1417,30 +1418,7 @@ class TrackVideoThread(QThread):
         if self.background_path == 'Background calculated and loaded into memory/Background calculated and loaded into memory':
             self.background_path = None
         ut.track_video(self.video_path, self.colours, self.n_tail_points, self.dist_tail_points, self.dist_eyes, self.dist_swim_bladder, n_frames = self.n_frames, starting_frame = self.starting_frame, save_path = self.save_path, background_path = self.background_path, line_length = self.line_length, video_fps = self.video_fps, pixel_threshold = self.pixel_threshold, frame_change_threshold = self.frame_change_threshold)
-
-# class CalculateBackgroundThread(QThread):
-#
-#     def __init__(self):
-#         super(CalculateBackgroundThread, self).__init__()
-#         self.video_path = None
-#         self.colours = None
-#         self.n_tail_points = None
-#         self.dist_tail_points = None
-#         self.dist_eyes = None
-#         self.dist_swim_bladder = None
-#         self.n_frames = None
-#         self.starting_frame = None
-#         self.save_path = None
-#         self.background_path = None
-#         self.line_length = None
-#         self.video_fps = None
-#         self.pixel_threshold = None
-#         self.frame_change_threshold = None
-#
-#     def run(self):
-#         if self.background_path == 'Background calculated and loaded into memory/Background calculated and loaded into memory':
-#             self.background_path = None
-#         ut.track_video(self.video_path, self.colours, self.n_tail_points, self.dist_tail_points, self.dist_eyes, self.dist_swim_bladder, n_frames = self.n_frames, starting_frame = self.starting_frame, save_path = self.save_path, background_path = self.background_path, line_length = self.line_length, video_fps = self.video_fps, pixel_threshold = self.pixel_threshold, frame_change_threshold = self.frame_change_threshold)
+        # ut.track_tail_in_video_without_multiprocessing(self.video_path, self.colours, self.n_tail_points, self.dist_tail_points, self.dist_eyes, self.dist_swim_bladder, init_frame_batch_size = 50, init_starting_frame = 0, save_path = self.save_path, background_path = self.background_path, line_length = self.line_length, video_fps = self.video_fps, n_frames = self.n_frames, pixel_threshold = self.pixel_threshold, frame_change_threshold = self.frame_change_threshold)
 
 class PlottingWindow(QScrollArea):
 
@@ -1464,10 +1442,9 @@ class PlottingContent(QMainWindow):
         self.add_preview_frame_number_textbox()
         self.add_update_preview_button()
         self.add_frame_change_buttons()
-        # self.add_canvas()
+        self.add_data_plot_window()
         self.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Ignored)
         self.resize(2560, 1400)
-        self.show()
     def initialize_class_variables(self):
         self.frame_number = 1
         self.video_path = None
@@ -1570,9 +1547,13 @@ class PlottingContent(QMainWindow):
         self.large_frame_increase_button.resize(80, 80)
         self.large_frame_increase_button.clicked.connect(self.check_large_frame_increase_button)
         self.update_frame_change_buttons(inactivate = True)
-    def add_canvas(self):
-        self.canvas = PlottingCanvas()
-    # def add_heading_angle_plot(self):
+    def add_data_plot_window(self):
+        self.data_plot_window = QScrollArea(self)
+        self.data_plot_window.move(1015, 25)
+        self.data_plot_window.resize(1000, 1000)
+        self.data_plot_window.setFrameShape(QFrame.Panel)
+        self.data_plot_window.setFrameShadow(QFrame.Sunken)
+        self.data_plot_window.setLineWidth(5)
 
     def update_preview_frame(self, frame, frame_width, frame_height):
         format = QImage.Format_RGB888
@@ -1582,12 +1563,16 @@ class PlottingContent(QMainWindow):
         elif frame_width > 1000:
            self.preview_frame = self.preview_frame.scaledToWidth(1000)
         frame = cv2.resize(frame, dsize=(self.preview_frame.width(), self.preview_frame.height()), interpolation=cv2.INTER_CUBIC).copy()
+        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         self.preview_frame = QImage(frame.data, self.preview_frame.width(), self.preview_frame.height(), format)
     def update_preview_frame_window(self, clear = False):
         if not clear:
             self.preview_frame_window.setPixmap(QPixmap.fromImage(self.preview_frame))
         else:
             self.preview_frame_window.clear()
+    def update_data_plot_window(self, clear = False):
+        if not clear:
+            self.data_plot_window.setWidget(self.data_plot)
     def update_frame_window_slider(self, activate = False, inactivate = False):
         if activate:
             if not self.frame_window_slider.isEnabled():
@@ -1652,7 +1637,7 @@ class PlottingContent(QMainWindow):
                 self.large_frame_increase_button.setEnabled(False)
     def update_frame_window_slider_position(self):
         self.frame_window_slider.setValue(self.frame_number)
-        
+
     def trigger_open_tracked_video(self):
         self.video_path, _ = QFileDialog.getOpenFileName(self, "Open Video File", "","Video Files (*.avi)", options = QFileDialog.Options())
         if self.video_path:
@@ -1679,20 +1664,11 @@ class PlottingContent(QMainWindow):
         self.tracking_data_path, _ = QFileDialog.getOpenFileName(self, "Open Tracking Data", "","Tracking Data (*.npy)", options = QFileDialog.Options())
         if self.tracking_data_path:
             data = np.load(self.tracking_data_path).item()
-            self.heading_angle_array = data['heading_angle_array']
-            self.tail_coord_array = data['tail_coord_array']
-            self.body_coord_array = data['body_coord_array']
-            self.eye_angle_array = data['eye_angle_array']
-            self.video_n_frames = data['video_n_frames']
-            self.video_fps = data['video_fps']
-            self.colours = data['colours']
-            self.colours = [[self.colours[i][2]/255, self.colours[i][1]/255, self.colours[i][0]/255] for i in range(len(self.colours))]
-            self.dist_tail_points = data['dist_tail_points']
-            self.dist_eyes = data['dist_eyes']
-            self.dist_swim_bladder = data['dist_swim_bladder']
-            self.eyes_threshold = data['eyes_threshold']
-            self.pixel_threshold = data['pixel_threshold']
-            self.frame_change_threshold = data['frame_change_threshold']
+            self.data_plot = DataPlot()
+            self.data_plot.initialize_class_variables(data = data)
+            self.data_plot.calculate_variables()
+            self.data_plot.update_plots()
+            self.update_data_plot_window()
             # self.add_canvas()
     def trigger_unload_all_plotting(self):
         self.initialize_class_variables()
@@ -1751,123 +1727,127 @@ class PlottingContent(QMainWindow):
     def closeEvent(self, event):
         event.accept()
 
-# class PlottingCanvas(FigureCanvas):
-#
-#     def __init__(self):
-#         super(PlottingCanvas, self).__init__()
-#         # self.initUI()
-#         self._dynamic_ax = dynamic_canvas.figure.subplots()
-#         self._timer = dynamic_canvas.new_timer(
-#             100, [(self._update_canvas, (), {})])
-#         self._timer.start()
-#
-#     def _update_canvas(self):
-#         self._dynamic_ax.clear()
-#         t = np.linspace(0, 10, 101)
-#         # Shift the sinusoid as a function of time.
-#         self._dynamic_ax.plot(t, np.sin(t + time.time()))
-#         self._dynamic_ax.figure.canvas.draw()
-#     # def initUI(self, parent = None, width = 4, height = 5, dpi = 100):
-#
-#         # fig = Figure(figsize=(width, height), dpi=dpi)
-#         # self.axes = fig.add_subplot(111)
-#
-#         # FigureCanvas.__init__(self, fig)
-#         # self.setParent(parent)
-#         #
-#         # FigureCanvas.setSizePolicy(self,
-#         #         QSizePolicy.Expanding,
-#         #         QSizePolicy.Expandi ng)
-#         # FigureCanvas.updateGeometry(self)
-#         # self.plot()
-#
-#
-#     def plot(self):
-#         data = [random.random() for i in range(25)]
-#         ax = self.figure.add_subplot(111)
-#         ax.plot(data, 'r-')
-#         ax.set_title('PyQt Matplotlib Example')
-#         self.draw()
-#
-# class PlottingData(FigureCanvas):
-#
-#     def __init__(self):
-#         super(PlottingContent, self).__init__()
-#         self.initUI()
-#
-#     def initUI(self):
-#         self.initialize_class_variables()
-#
-#     def initialize_class_variables(self):
-#         self.smoothing_factor = 3
-#
-#         self.tail_angles = [[np.arctan2(self.tail_coord_array[j][i + 1][0] - self.tail_coord_array[j][i][0], self.tail_coord_array[j][i + 1][1] - self.tail_coord_array[j][i][1]) for i in range(len(self.tail_coord_array[0]) - 1)] for j in range(len(self.tail_coord_array))]
-#         self.body_tail_angles = [np.arctan2(self.tail_coord_array[j][0][0] - self.body_coord_array[j][0], self.tail_coord_array[j][0][1] - self.body_coord_array[j][1]) for j in range(len(self.tail_coord_array))]
-#         self.tail_angles = [[self.tail_angles[j][i] - self.body_tail_angles[j] for i in range(len(self.tail_angles[0]))] for j in range(len(self.tail_angles))]
-#         self.tail_angles = [[self.tail_angles[i][j] for i in range(len(self.tail_angles))] for j in range(len(self.tail_angles[0]))]
-#
-#         for i in range(len(self.tail_angles)):
-#             for j in range(1, len(self.tail_angles[i])):
-#                 if self.tail_angles[i][j] >= 0.9 * np.pi:
-#                     self.tail_angles[i][j] -= np.pi * 2
-#                 elif self.tail_angles[i][j] <= 0.9 * -np.pi:
-#                     self.tail_angles[i][j] += np.pi * 2
-#
-#         self.sum_tail_angles = [np.sum([abs(self.tail_angles[i][j]) for i in range(len(self.tail_angles))]) for j in range(len(self.tail_angles[0]))]
-#         self.tail_angle_frames = np.where([self.sum_tail_angles[i] == self.sum_tail_angles[i + 1] == self.sum_tail_angles[i + 2] for i in range(len(self.sum_tail_angles) - 2)])[0]
-#         self.smoothed_tail_angles = [np.convolve(self.tail_angles[i], np.ones(self.smoothing_factor)/self.smoothing_factor, mode = 'same') for i in range(len(self.tail_angles))]
-#
-#         j = 0
-#         if np.isnan(self.heading_angle_array[0]):
-#             while np.isnan(self.heading_angle_array[0]):
-#                 if not np.isnan(self.heading_angle_array[j]):
-#                     self.heading_angle_array[0] = self.heading_angle_array[j]
-#                 j += 1
-#
-#         self.heading_angles = np.array([self.heading_angle_array[i] - self.heading_angle_array[0] for i in range(len(self.heading_angle_array))])
-#
-#         i = 0
-#         for j in range(len(self.heading_angles)):
-#             if j not in self.tail_angle_frames:
-#                 i = j
-#             else:
-#                 self.heading_angles[j] = self.heading_angles[i]
-#
-#         for i in range(1, len(self.heading_angles)):
-#             if self.heading_angles[i] - self.heading_angles[i - 1] > np.pi:
-#                 self.heading_angles[i:] -= np.pi * 2
-#             elif self.heading_angles[i] - self.heading_angles[i - 1] < -np.pi:
-#                 self.heading_angles[i:] += np.pi * 2
-#
-#         self.smoothed_heading_angles = np.convolve(self.heading_angles, np.ones(self.smoothing_factor)/self.smoothing_factor, mode = 'same')
-#
-#         self.eye_angles = [[self.eye_angle_array[i][j] - self.heading_angle_array[i] for i in range(len(self.eye_angle_array))] for j in range(len(self.eye_angle_array[0]))]
-#
-#         i = 0
-#         for k in range(len(self.eye_angles)):
-#             for j in range(len(self.eye_angles[k])):
-#                 if j not in self.tail_angle_frames:
-#                     i = j
-#                 else:
-#                     self.eye_angles[k][j] = self.eye_angles[k][i]
-#
-#         for j in range(len(self.eye_angles)):
-#             for i in range(1, len(self.eye_angles[j])):
-#                 if self.eye_angles[j][i] - self.eye_angles[j][i - 1] > np.pi * 0.9:
-#                     self.eye_angles[j][i] -= np.pi * 2
-#                 elif self.eye_angles[j][i] - self.eye_angles[j][i - 1] < -np.pi * 0.9:
-#                     self.eye_angles[j][i] += np.pi * 2
-#
-#         for j in range(len(self.eye_angles)):
-#             for i in range(1, len(self.eye_angles[j])):
-#                 if self.eye_angles[j][i] > np.pi:
-#                     self.eye_angles[j][i] -= np.pi * 2
-#                 elif self.eye_angles[j][i] < -np.pi:
-#                     self.eye_angles[j][i] += np.pi * 2
-#
-#         self.smoothed_eye_angles = [np.convolve(self.eye_angles[i], np.ones(self.smoothing_factor)/self.smoothing_factor, mode = 'same') for i in range(len(self.eye_angles))]
-#
-#         self.timepoints = np.linspace(0, self.video_n_frames / self.video_fps, self.video_n_frames)
+class DataPlot(QMainWindow):
+
+    def __init__(self):
+        super(DataPlot, self).__init__()
+        self.initUI()
+
+    def initUI(self):
+        # self.initialize_class_variables()
+
+        self.data_plots = QWidget()
+        self.setCentralWidget(self.data_plots)
+        layout = QVBoxLayout(self.data_plots)
+
+        self.tail_angle_plot = FigureCanvas(Figure(figsize=(9, 5)))
+        layout.addWidget(self.tail_angle_plot)
+        self.addToolBar(NavigationToolbar(self.tail_angle_plot, self))
+
+        self.heading_angle_plot = FigureCanvas(Figure(figsize=(9, 5)))
+        layout.addWidget(self.heading_angle_plot)
+        self.addToolBar(Qt.BottomToolBarArea, NavigationToolbar(self.heading_angle_plot, self))
+
+    def initialize_class_variables(self, data):
+        self.heading_angle_array = data['heading_angle_array']
+        self.tail_coord_array = data['tail_coord_array']
+        self.body_coord_array = data['body_coord_array']
+        self.eye_angle_array = data['eye_angle_array']
+        self.video_n_frames = data['video_n_frames']
+        self.video_fps = data['video_fps']
+        self.colours = data['colours']
+        self.colours = [[self.colours[i][2]/255, self.colours[i][1]/255, self.colours[i][0]/255] for i in range(len(self.colours))]
+        self.dist_tail_points = data['dist_tail_points']
+        self.dist_eyes = data['dist_eyes']
+        self.dist_swim_bladder = data['dist_swim_bladder']
+        self.eyes_threshold = data['eyes_threshold']
+        self.pixel_threshold = data['pixel_threshold']
+        self.frame_change_threshold = data['frame_change_threshold']
+
+    def calculate_variables(self):
+        self.smoothing_factor = 3
+
+        self.tail_angles = [[np.arctan2(self.tail_coord_array[j][i + 1][0] - self.tail_coord_array[j][i][0], self.tail_coord_array[j][i + 1][1] - self.tail_coord_array[j][i][1]) for i in range(len(self.tail_coord_array[0]) - 1)] for j in range(len(self.tail_coord_array))]
+        self.body_tail_angles = [np.arctan2(self.tail_coord_array[j][0][0] - self.body_coord_array[j][0], self.tail_coord_array[j][0][1] - self.body_coord_array[j][1]) for j in range(len(self.tail_coord_array))]
+        self.tail_angles = [[self.tail_angles[j][i] - self.body_tail_angles[j] for i in range(len(self.tail_angles[0]))] for j in range(len(self.tail_angles))]
+        self.tail_angles = [[self.tail_angles[i][j] for i in range(len(self.tail_angles))] for j in range(len(self.tail_angles[0]))]
+
+        for i in range(len(self.tail_angles)):
+            for j in range(1, len(self.tail_angles[i])):
+                if self.tail_angles[i][j] >= 0.9 * np.pi:
+                    self.tail_angles[i][j] -= np.pi * 2
+                elif self.tail_angles[i][j] <= 0.9 * -np.pi:
+                    self.tail_angles[i][j] += np.pi * 2
+
+        self.sum_tail_angles = [np.sum([abs(self.tail_angles[i][j]) for i in range(len(self.tail_angles))]) for j in range(len(self.tail_angles[0]))]
+        self.tail_angle_frames = np.where([self.sum_tail_angles[i] == self.sum_tail_angles[i + 1] == self.sum_tail_angles[i + 2] for i in range(len(self.sum_tail_angles) - 2)])[0]
+        self.smoothed_tail_angles = [np.convolve(self.tail_angles[i], np.ones(self.smoothing_factor)/self.smoothing_factor, mode = 'same') for i in range(len(self.tail_angles))]
+
+        j = 0
+        if np.isnan(self.heading_angle_array[0]):
+            while np.isnan(self.heading_angle_array[0]):
+                if not np.isnan(self.heading_angle_array[j]):
+                    self.heading_angle_array[0] = self.heading_angle_array[j]
+                j += 1
+
+        self.heading_angles = np.array([self.heading_angle_array[i] - self.heading_angle_array[0] for i in range(len(self.heading_angle_array))])
+
+        i = 0
+        for j in range(len(self.heading_angles)):
+            if j not in self.tail_angle_frames:
+                i = j
+            else:
+                self.heading_angles[j] = self.heading_angles[i]
+
+        for i in range(1, len(self.heading_angles)):
+            if self.heading_angles[i] - self.heading_angles[i - 1] > np.pi:
+                self.heading_angles[i:] -= np.pi * 2
+            elif self.heading_angles[i] - self.heading_angles[i - 1] < -np.pi:
+                self.heading_angles[i:] += np.pi * 2
+
+        self.smoothed_heading_angles = np.convolve(self.heading_angles, np.ones(self.smoothing_factor)/self.smoothing_factor, mode = 'same')
+
+        self.eye_angles = [[self.eye_angle_array[i][j] - self.heading_angle_array[i] for i in range(len(self.eye_angle_array))] for j in range(len(self.eye_angle_array[0]))]
+
+        i = 0
+        for k in range(len(self.eye_angles)):
+            for j in range(len(self.eye_angles[k])):
+                if j not in self.tail_angle_frames:
+                    i = j
+                else:
+                    self.eye_angles[k][j] = self.eye_angles[k][i]
+
+        for j in range(len(self.eye_angles)):
+            for i in range(1, len(self.eye_angles[j])):
+                if self.eye_angles[j][i] - self.eye_angles[j][i - 1] > np.pi * 0.9:
+                    self.eye_angles[j][i] -= np.pi * 2
+                elif self.eye_angles[j][i] - self.eye_angles[j][i - 1] < -np.pi * 0.9:
+                    self.eye_angles[j][i] += np.pi * 2
+
+        for j in range(len(self.eye_angles)):
+            for i in range(1, len(self.eye_angles[j])):
+                if self.eye_angles[j][i] > np.pi:
+                    self.eye_angles[j][i] -= np.pi * 2
+                elif self.eye_angles[j][i] < -np.pi:
+                    self.eye_angles[j][i] += np.pi * 2
+
+        self.smoothed_eye_angles = [np.convolve(self.eye_angles[i], np.ones(self.smoothing_factor)/self.smoothing_factor, mode = 'same') for i in range(len(self.eye_angles))]
+
+        self.timepoints = np.linspace(0, self.video_n_frames / self.video_fps, self.video_n_frames)
+
+    def update_plots(self):
+
+        self.tail_angle_plot_axis = self.tail_angle_plot.figure.subplots()
+        [self.tail_angle_plot_axis.plot(self.timepoints, self.smoothed_tail_angles[i], color = self.colours[i], lw = 1) for i in range(len(self.smoothed_tail_angles))]
+        self.tail_angle_plot_axis.set_xlabel('Time (s)')
+        self.tail_angle_plot_axis.set_ylabel('Angle (radians)')
+        self.tail_angle_plot_axis.set_title('Tail Kinematics Over Time')
+
+        self.heading_angle_plot_axis = self.heading_angle_plot.figure.subplots()
+        self.heading_angle_plot_axis.plot(self.timepoints, self.smoothed_heading_angles, color = self.colours[-1], lw = 1)
+        self.heading_angle_plot_axis.set_xlabel('Time (s)')
+        self.heading_angle_plot_axis.set_ylabel('Angle (radians)')
+        self.heading_angle_plot_axis.set_title('Heading Angle Over Time')
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
