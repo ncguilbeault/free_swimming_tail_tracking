@@ -3,14 +3,12 @@
 # import python modules
 import sys
 import os
-import subprocess
 import cv2
-import random
 import numpy as np
 import free_swimming_tail_tracking_UT as ut
 import matplotlib.cm as cm
+import time
 from functools import partial
-# from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_qt5agg import FigureCanvas, NavigationToolbar2QT as NavigationToolbar
 import matplotlib.pyplot as plt
@@ -115,6 +113,10 @@ class MainWindow(QMainWindow):
         self.main_tab.plotting_window.plotting_content.trigger_load_tracking_results()
     def trigger_unload_all_plotting(self):
         self.main_tab.plotting_window.plotting_content.trigger_unload_all_plotting()
+
+    # Defining Event Functions
+    def closeEvent(self, event):
+        event.accept()
 
 class MainTab(QTabWidget):
 
@@ -362,13 +364,13 @@ class TrackingContent(QMainWindow):
         font.setPointSize(10)
         self.preview_frame_number_textbox_label = QLabel(self)
         self.preview_frame_number_textbox_label.move(5, 1060)
-        self.preview_frame_number_textbox_label.resize(145, 20)
-        self.preview_frame_number_textbox_label.setText('Preview Frame Number: ')
+        self.preview_frame_number_textbox_label.resize(145, 25)
+        self.preview_frame_number_textbox_label.setText('Frame Number: ')
         self.preview_frame_number_textbox_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
         self.preview_frame_number_textbox_label.setFont(font)
         self.preview_frame_number_textbox = QLineEdit(self)
         self.preview_frame_number_textbox.move(150, 1060)
-        self.preview_frame_number_textbox.resize(100, 20)
+        self.preview_frame_number_textbox.resize(100, 25)
         self.preview_frame_number_textbox.setAlignment(Qt.AlignLeft | Qt.AlignTop)
         self.preview_frame_number_textbox.setFont(font)
         self.preview_frame_number_textbox.returnPressed.connect(self.check_preview_frame_number_textbox)
@@ -758,6 +760,10 @@ class TrackingContent(QMainWindow):
            self.preview_frame = self.preview_frame.scaledToHeight(1000)
         elif frame_width > 1000:
            self.preview_frame = self.preview_frame.scaledToWidth(1000)
+        elif frame_height > frame_width:
+           self.preview_frame = self.preview_frame.scaledToHeight(1000)
+        else:
+            self.preview_frame = self.preview_frame.scaledToWidth(1000)
         frame = cv2.resize(frame, dsize=(self.preview_frame.width(), self.preview_frame.height()), interpolation=cv2.INTER_CUBIC).copy()
         self.preview_frame = QImage(frame.data, self.preview_frame.width(), self.preview_frame.height(), format)
     def update_preview_frame_window(self, clear = False):
@@ -1233,7 +1239,7 @@ class TrackingContent(QMainWindow):
         self.trigger_update_preview()
     def trigger_load_default_colours(self):
         self.colours = [[] for i in range(self.n_tail_points + 3)]
-        colour_map = cm.inferno
+        colour_map = cm.gnuplot2
         self.colours[-1] = (49, 191, 114)
         self.colours[-2] = (139, 139, 0)
         self.colours[-3] = (139, 139, 0)
@@ -1391,10 +1397,6 @@ class TrackingContent(QMainWindow):
         self.update_colours()
         self.trigger_update_preview()
 
-    # Defining Event Functions
-    def closeEvent(self, event):
-        event.accept()
-
 class TrackVideoThread(QThread):
 
     def __init__(self):
@@ -1442,6 +1444,7 @@ class PlottingContent(QMainWindow):
         self.add_preview_frame_number_textbox()
         self.add_update_preview_button()
         self.add_frame_change_buttons()
+        self.add_video_playback_buttons()
         self.add_data_plot_window()
         self.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Ignored)
         self.resize(2560, 1400)
@@ -1466,7 +1469,7 @@ class PlottingContent(QMainWindow):
         self.preview_frame_window.setLineWidth(5)
         self.preview_frame_window.move(5, 25)
         self.preview_frame_window.resize(1000, 1000)
-        self.preview_frame_window.setText('Tracking Preview Frame Window')
+        self.preview_frame_window.setText('Tracked Frame Window')
         self.preview_frame_window.setAlignment(Qt.AlignHCenter | Qt.AlignTop)
         self.preview_frame_window.setFont(font)
     def add_frame_window_slider(self):
@@ -1482,71 +1485,79 @@ class PlottingContent(QMainWindow):
     def add_preview_frame_number_textbox(self):
         font = QFont()
         font.setPointSize(10)
-        self.preview_frame_number_textbox_label = QLabel(self)
-        self.preview_frame_number_textbox_label.move(5, 1060)
-        self.preview_frame_number_textbox_label.resize(145, 20)
-        self.preview_frame_number_textbox_label.setText('Preview Frame Number: ')
-        self.preview_frame_number_textbox_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        self.preview_frame_number_textbox_label.setFont(font)
-        self.preview_frame_number_textbox = QLineEdit(self)
-        self.preview_frame_number_textbox.move(150, 1060)
-        self.preview_frame_number_textbox.resize(100, 20)
-        self.preview_frame_number_textbox.setAlignment(Qt.AlignLeft | Qt.AlignTop)
-        self.preview_frame_number_textbox.setFont(font)
-        self.preview_frame_number_textbox.returnPressed.connect(self.check_preview_frame_number_textbox)
-        self.update_preview_frame_number_textbox(inactivate = True)
+        self.tracking_video_time_textbox_label = QLabel(self)
+        self.tracking_video_time_textbox_label.move(5, 1060)
+        self.tracking_video_time_textbox_label.resize(155, 25)
+        self.tracking_video_time_textbox_label.setText('Time (seconds): ')
+        self.tracking_video_time_textbox_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        self.tracking_video_time_textbox_label.setFont(font)
+        self.tracking_video_time_textbox = QLineEdit(self)
+        self.tracking_video_time_textbox.move(160, 1060)
+        self.tracking_video_time_textbox.resize(100, 25)
+        self.tracking_video_time_textbox.setAlignment(Qt.AlignLeft | Qt.AlignTop)
+        self.tracking_video_time_textbox.setFont(font)
+        self.tracking_video_time_textbox.returnPressed.connect(self.check_tracking_video_time_textbox)
+        self.update_tracking_video_time_textbox(inactivate = True)
     def add_update_preview_button(self):
         font = QFont()
         font.setPointSize(10)
         self.update_preview_button = QPushButton('Update Preview', self)
         self.update_preview_button.move(5, 1090)
-        self.update_preview_button.resize(245, 50)
+        self.update_preview_button.resize(255, 50)
         self.update_preview_button.setFont(font)
-        self.update_preview_button.clicked.connect(self.check_preview_frame_number_textbox)
+        self.update_preview_button.clicked.connect(self.check_tracking_video_time_textbox)
         self.update_update_preview_button(inactivate = True)
     def add_frame_change_buttons(self):
         self.large_frame_decrease_button = QPushButton(self)
         self.large_frame_decrease_button.setIcon(QIcon('button_icon_1.png'))
         self.large_frame_decrease_button.setIconSize(QSize(76, 76))
-        self.large_frame_decrease_button.move(260, 1060)
+        self.large_frame_decrease_button.move(555, 1060)
         self.large_frame_decrease_button.resize(80, 80)
         self.large_frame_decrease_button.clicked.connect(self.check_large_frame_decrease_button)
-
-        self.medium_frame_decrease_button = QPushButton(self)
-        self.medium_frame_decrease_button.setIcon(QIcon('button_icon_2.png'))
-        self.medium_frame_decrease_button.setIconSize(QSize(76, 76))
-        self.medium_frame_decrease_button.move(345, 1060)
-        self.medium_frame_decrease_button.resize(80, 80)
-        self.medium_frame_decrease_button.clicked.connect(self.check_medium_frame_decrease_button)
 
         self.small_frame_decrease_button = QPushButton(self)
         self.small_frame_decrease_button.setIcon(QIcon('button_icon_3.png'))
         self.small_frame_decrease_button.setIconSize(QSize(76, 76))
-        self.small_frame_decrease_button.move(430, 1060)
+        self.small_frame_decrease_button.move(640, 1060)
         self.small_frame_decrease_button.resize(80, 80)
         self.small_frame_decrease_button.clicked.connect(self.check_small_frame_decrease_button)
 
         self.small_frame_increase_button = QPushButton(self)
         self.small_frame_increase_button.setIcon(QIcon('button_icon_4.png'))
         self.small_frame_increase_button.setIconSize(QSize(76, 76))
-        self.small_frame_increase_button.move(515, 1060)
+        self.small_frame_increase_button.move(725, 1060)
         self.small_frame_increase_button.resize(80, 80)
         self.small_frame_increase_button.clicked.connect(self.check_small_frame_increase_button)
-
-        self.medium_frame_increase_button = QPushButton(self)
-        self.medium_frame_increase_button.setIcon(QIcon('button_icon_5.png'))
-        self.medium_frame_increase_button.setIconSize(QSize(76, 76))
-        self.medium_frame_increase_button.move(600, 1060)
-        self.medium_frame_increase_button.resize(80, 80)
-        self.medium_frame_increase_button.clicked.connect(self.check_medium_frame_increase_button)
 
         self.large_frame_increase_button = QPushButton(self)
         self.large_frame_increase_button.setIcon(QIcon('button_icon_6.png'))
         self.large_frame_increase_button.setIconSize(QSize(76, 76))
-        self.large_frame_increase_button.move(685, 1060)
+        self.large_frame_increase_button.move(810, 1060)
         self.large_frame_increase_button.resize(80, 80)
         self.large_frame_increase_button.clicked.connect(self.check_large_frame_increase_button)
         self.update_frame_change_buttons(inactivate = True)
+    def add_video_playback_buttons(self):
+        self.pause_video_button = QPushButton(self)
+        self.pause_video_button.setIcon(QIcon('button_icon_7.png'))
+        self.pause_video_button.setIconSize(QSize(76, 76))
+        self.pause_video_button.move(285, 1060)
+        self.pause_video_button.resize(80, 80)
+        self.pause_video_button.clicked.connect(self.check_pause_video_button)
+
+        self.play_video_normal_speed_button = QPushButton(self)
+        self.play_video_normal_speed_button.setIcon(QIcon('button_icon_8.png'))
+        self.play_video_normal_speed_button.setIconSize(QSize(76, 76))
+        self.play_video_normal_speed_button.move(370, 1060)
+        self.play_video_normal_speed_button.resize(80, 80)
+        self.play_video_normal_speed_button.clicked.connect(self.check_play_video_normal_speed_button)
+
+        self.play_video_max_speed_button = QPushButton(self)
+        self.play_video_max_speed_button.setIcon(QIcon('button_icon_9.png'))
+        self.play_video_max_speed_button.setIconSize(QSize(76, 76))
+        self.play_video_max_speed_button.move(455, 1060)
+        self.play_video_max_speed_button.resize(80, 80)
+        # self.play_video_max_speed_button.clicked.connect(self.check_play_video_max_speed_button)
+        self.update_video_playback_buttons(inactivate = True)
     def add_data_plot_window(self):
         self.data_plot_window = QScrollArea(self)
         self.data_plot_window.move(1015, 25)
@@ -1562,6 +1573,10 @@ class PlottingContent(QMainWindow):
            self.preview_frame = self.preview_frame.scaledToHeight(1000)
         elif frame_width > 1000:
            self.preview_frame = self.preview_frame.scaledToWidth(1000)
+        elif frame_height > frame_width:
+           self.preview_frame = self.preview_frame.scaledToHeight(1000)
+        else:
+            self.preview_frame = self.preview_frame.scaledToWidth(1000)
         frame = cv2.resize(frame, dsize=(self.preview_frame.width(), self.preview_frame.height()), interpolation=cv2.INTER_CUBIC).copy()
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         self.preview_frame = QImage(frame.data, self.preview_frame.width(), self.preview_frame.height(), format)
@@ -1590,17 +1605,17 @@ class PlottingContent(QMainWindow):
             self.frame_window_slider.setMinimum(0)
             self.frame_window_slider.setMaximum(0)
             self.frame_window_slider.setValue(0)
-    def update_preview_frame_number_textbox(self, activate = False, inactivate = False):
+    def update_tracking_video_time_textbox(self, activate = False, inactivate = False):
         if activate:
-            if not self.preview_frame_number_textbox.isEnabled():
-                self.preview_frame_number_textbox.setEnabled(True)
+            if not self.tracking_video_time_textbox.isEnabled():
+                self.tracking_video_time_textbox.setEnabled(True)
         if inactivate:
-            if self.preview_frame_number_textbox.isEnabled():
-                self.preview_frame_number_textbox.setEnabled(False)
-        if self.preview_frame_number_textbox.isEnabled():
-            self.preview_frame_number_textbox.setText('{0}'.format(self.frame_number))
+            if self.tracking_video_time_textbox.isEnabled():
+                self.tracking_video_time_textbox.setEnabled(False)
+        if self.tracking_video_time_textbox.isEnabled():
+            self.tracking_video_time_textbox.setText('{0}'.format(round(self.frame_number / self.video_fps, 2)))
         else:
-            self.preview_frame_number_textbox.setText('{0}'.format(0))
+            self.tracking_video_time_textbox.setText('{0}'.format(0))
     def update_update_preview_button(self, activate = False, inactivate = False):
         if activate:
             if not self.update_preview_button.isEnabled():
@@ -1612,31 +1627,38 @@ class PlottingContent(QMainWindow):
         if activate:
             if not self.large_frame_decrease_button.isEnabled():
                 self.large_frame_decrease_button.setEnabled(True)
-            if not self.medium_frame_decrease_button.isEnabled():
-                self.medium_frame_decrease_button.setEnabled(True)
             if not self.small_frame_decrease_button.isEnabled():
                 self.small_frame_decrease_button.setEnabled(True)
             if not self.small_frame_increase_button.isEnabled():
                 self.small_frame_increase_button.setEnabled(True)
-            if not self.medium_frame_increase_button.isEnabled():
-                self.medium_frame_increase_button.setEnabled(True)
             if not self.large_frame_increase_button.isEnabled():
                 self.large_frame_increase_button.setEnabled(True)
         if inactivate:
             if self.large_frame_decrease_button.isEnabled():
                 self.large_frame_decrease_button.setEnabled(False)
-            if self.medium_frame_decrease_button.isEnabled():
-                self.medium_frame_decrease_button.setEnabled(False)
             if self.small_frame_decrease_button.isEnabled():
                 self.small_frame_decrease_button.setEnabled(False)
             if self.small_frame_increase_button.isEnabled():
                 self.small_frame_increase_button.setEnabled(False)
-            if self.medium_frame_increase_button.isEnabled():
-                self.medium_frame_increase_button.setEnabled(False)
             if self.large_frame_increase_button.isEnabled():
                 self.large_frame_increase_button.setEnabled(False)
     def update_frame_window_slider_position(self):
         self.frame_window_slider.setValue(self.frame_number)
+    def update_video_playback_buttons(self, activate = False, inactivate = False):
+        if activate:
+            if not self.pause_video_button.isEnabled():
+                self.pause_video_button.setEnabled(True)
+            if not self.play_video_normal_speed_button.isEnabled():
+                self.play_video_normal_speed_button.setEnabled(True)
+            if not self.play_video_max_speed_button.isEnabled():
+                self.play_video_max_speed_button.setEnabled(True)
+        if inactivate:
+            if self.pause_video_button.isEnabled():
+                self.pause_video_button.setEnabled(False)
+            if self.play_video_normal_speed_button.isEnabled():
+                self.play_video_normal_speed_button.setEnabled(False)
+            if self.play_video_max_speed_button.isEnabled():
+                self.play_video_max_speed_button.setEnabled(False)
 
     def trigger_open_tracked_video(self):
         self.video_path, _ = QFileDialog.getOpenFileName(self, "Open Video File", "","Video Files (*.avi)", options = QFileDialog.Options())
@@ -1644,12 +1666,14 @@ class PlottingContent(QMainWindow):
             self.get_video_attributes()
             success, self.frame = ut.load_frame_into_memory(self.video_path, self.frame_number - 1, convert_to_grayscale = False)
             if success and self.frame is not None:
+                self.play_video_normal_speed = False
                 self.update_preview_frame(self.frame, self.video_frame_width, self.video_frame_height)
                 self.update_preview_frame_window()
                 self.update_frame_window_slider(activate = True)
-                self.update_preview_frame_number_textbox(activate = True)
+                self.update_tracking_video_time_textbox(activate = True)
                 self.update_update_preview_button(activate = True)
                 self.update_frame_change_buttons(activate = True)
+                self.update_video_playback_buttons(activate = True)
     def trigger_update_preview(self):
         if self.video_path is not None:
             success, self.frame = ut.load_frame_into_memory(self.video_path, self.frame_number - 1, convert_to_grayscale = False)
@@ -1657,7 +1681,7 @@ class PlottingContent(QMainWindow):
                 self.update_preview_frame(self.frame, self.video_frame_width, self.video_frame_height)
                 self.update_preview_frame_window()
                 self.update_frame_window_slider(activate = True)
-                self.update_preview_frame_number_textbox(activate = True)
+                self.update_tracking_video_time_textbox(activate = True)
                 self.update_update_preview_button(activate = True)
                 self.update_frame_change_buttons(activate = True)
     def trigger_load_tracking_results(self):
@@ -1669,36 +1693,47 @@ class PlottingContent(QMainWindow):
             self.data_plot.calculate_variables()
             self.data_plot.update_plots()
             self.update_data_plot_window()
-            # self.add_canvas()
     def trigger_unload_all_plotting(self):
         self.initialize_class_variables()
         self.update_preview_frame_window(clear = True)
         self.update_frame_window_slider(inactivate = True)
-        self.update_preview_frame_number_textbox(inactivate = True)
+        self.update_tracking_video_time_textbox(inactivate = True)
         self.update_update_preview_button(inactivate = True)
         self.update_frame_change_buttons(inactivate = True)
         self.update_frame_window_slider_position()
+    def trigger_pause_video(self):
+        if self.play_video_normal_speed:
+            self.play_video_normal_speed = False
+    def trigger_play_video_normal_speed(self):
+        # while self.play_video_normal_speed:
+        self.frame_number += 1
+        if self.frame_number <= self.video_n_frames:
+            self.trigger_update_preview()
+        else:
+            self.time_thread.stop()
+            self.frame_number = 1
+            self.trigger_update_preview()
+            self.time_thread.start()
+        # time.sleep(1)
 
-    def check_preview_frame_number_textbox(self):
-        if self.preview_frame_number_textbox.text().isdigit():
-            if int(self.preview_frame_number_textbox.text()) > self.video_n_frames:
+    def check_tracking_video_time_textbox(self):
+        try:
+            time = float(self.tracking_video_time_textbox.text())
+            if time > self.video_n_frames / self.video_fps:
                 self.frame_number = self.video_n_frames
             else:
-                if int(self.preview_frame_number_textbox.text()) != 0:
-                    self.frame_number = int(self.preview_frame_number_textbox.text())
+                if time > 0:
+                    self.frame_number = int(time * self.video_fps)
                 else:
                     self.frame_number = 1
+        except:
+            pass
         self.trigger_update_preview()
     def check_frame_window_slider_moved(self):
         self.frame_number = int(self.frame_window_slider.sliderPosition())
         self.trigger_update_preview()
     def check_large_frame_decrease_button(self):
         self.frame_number -= 100
-        if self.frame_number < 1:
-            self.frame_number = 1
-        self.trigger_update_preview()
-    def check_medium_frame_decrease_button(self):
-        self.frame_number -= 10
         if self.frame_number < 1:
             self.frame_number = 1
         self.trigger_update_preview()
@@ -1712,20 +1747,20 @@ class PlottingContent(QMainWindow):
         if self.frame_number > self.video_n_frames:
             self.frame_number = self.video_n_frames
         self.trigger_update_preview()
-    def check_medium_frame_increase_button(self):
-        self.frame_number += 10
-        if self.frame_number > self.video_n_frames:
-            self.frame_number = self.video_n_frames
-        self.trigger_update_preview()
     def check_large_frame_increase_button(self):
         self.frame_number += 100
         if self.frame_number > self.video_n_frames:
             self.frame_number = self.video_n_frames
         self.trigger_update_preview()
-
-    # Defining Event Functions
-    def closeEvent(self, event):
-        event.accept()
+    def check_pause_video_button(self):
+        self.trigger_pause_video()
+    def check_play_video_normal_speed_button(self):
+        self.play_video_normal_speed = True
+        # self.trigger_play_video_normal_speed()
+        self.time_thread = VideoPlaybackThread()
+        self.time_thread.start()
+        self.time_thread.time_signal.connect(self.trigger_play_video_normal_speed)
+        # self.time_thread.time_signal.connect(self.trigger_play_video_normal_speed)
 
 class DataPlot(QMainWindow):
 
@@ -1742,11 +1777,11 @@ class DataPlot(QMainWindow):
 
         self.tail_angle_plot = FigureCanvas(Figure(figsize=(9, 5)))
         layout.addWidget(self.tail_angle_plot)
-        self.addToolBar(NavigationToolbar(self.tail_angle_plot, self))
+        # self.addToolBar(NavigationToolbar(self.tail_angle_plot, self))
 
         self.heading_angle_plot = FigureCanvas(Figure(figsize=(9, 5)))
         layout.addWidget(self.heading_angle_plot)
-        self.addToolBar(Qt.BottomToolBarArea, NavigationToolbar(self.heading_angle_plot, self))
+        # self.addToolBar(Qt.BottomToolBarArea, NavigationToolbar(self.heading_angle_plot, self))
 
     def initialize_class_variables(self, data):
         self.heading_angle_array = data['heading_angle_array']
@@ -1781,6 +1816,17 @@ class DataPlot(QMainWindow):
 
         self.sum_tail_angles = [np.sum([abs(self.tail_angles[i][j]) for i in range(len(self.tail_angles))]) for j in range(len(self.tail_angles[0]))]
         self.tail_angle_frames = np.where([self.sum_tail_angles[i] == self.sum_tail_angles[i + 1] == self.sum_tail_angles[i + 2] for i in range(len(self.sum_tail_angles) - 2)])[0]
+        self.tail_angle_frames = np.where([self.sum_tail_angles[i] == self.sum_tail_angles[i + 1] for i in range(len(self.sum_tail_angles) - 1)])[0]
+        for i in range(1, len(self.tail_angle_frames)):
+            if self.tail_angle_frames[i] - self.tail_angle_frames[i - 1] == 2:
+                self.tail_angle_frames = np.append(self.tail_angle_frames, self.tail_angle_frames[i - 1] + 1)
+            elif self.tail_angle_frames[i] - self.tail_angle_frames[i - 1] == 3:
+                self.tail_angle_frames = np.append(self.tail_angle_frames, self.tail_angle_frames[i - 1] + 1)
+                self.tail_angle_frames = np.append(self.tail_angle_frames, self.tail_angle_frames[i - 1] + 2)
+
+        for i in range(len(self.tail_angles)):
+            for j in self.tail_angle_frames:
+                self.tail_angles[i][j] = 0.0
         self.smoothed_tail_angles = [np.convolve(self.tail_angles[i], np.ones(self.smoothing_factor)/self.smoothing_factor, mode = 'same') for i in range(len(self.tail_angles))]
 
         j = 0
@@ -1848,6 +1894,23 @@ class DataPlot(QMainWindow):
         self.heading_angle_plot_axis.set_xlabel('Time (s)')
         self.heading_angle_plot_axis.set_ylabel('Angle (radians)')
         self.heading_angle_plot_axis.set_title('Heading Angle Over Time')
+
+        # xlim_start = -100/video_fps
+        # xlim_end = 100/video_fps
+
+class VideoPlaybackThread(QThread):
+
+    time_signal = pyqtSignal(float)
+
+    def __init__(self):
+        super(VideoPlaybackThread, self).__init__()
+
+    def run(self):
+        while True:
+            time_now = time.clock()
+            print(time_now)
+            self.time_signal.emit(time_now)
+            time.sleep(0.1)
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
