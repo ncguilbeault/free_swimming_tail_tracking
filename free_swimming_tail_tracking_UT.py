@@ -209,12 +209,27 @@ def subtract_background_from_frame(frame, background):
     background_subtracted_frame = cv2.absdiff(frame, background)
     return background_subtracted_frame
 
-def annotate_tracking_results_onto_frame(frame, results, colours, line_length):
+def annotate_tracking_results_onto_frame(frame, results, colours, line_length, extended_eyes_calculation, eyes_line_length):
 
-    first_eye_coords, second_eye_coords, heading_coords, body_coords, heading_angle, tail_point_coords = results
+    first_eye_coords, second_eye_coords, first_eye_angle, second_eye_angle, heading_coords, body_coords, heading_angle, tail_point_coords = results
     annotated_frame = cv2.cvtColor(frame, cv2.COLOR_GRAY2RGB).astype(np.uint8)
-    annotated_frame = cv2.circle(annotated_frame, (int(round(first_eye_coords[1])), int(round(first_eye_coords[0]))), 1, colours[-2], -1)
-    annotated_frame = cv2.circle(annotated_frame, (int(round(second_eye_coords[1])), int(round(second_eye_coords[0]))), 1, colours[-2], - 1)
+    # Check whether to to an additional process to calculate eye angles.
+    if extended_eyes_calculation:
+        # Draw a circle arround the first eye coordinates.
+        annotated_frame = cv2.circle(annotated_frame, (int(round(first_eye_coords[1])), int(round(first_eye_coords[0]))), 1, colours[-2], -1)
+        if not np.isnan(first_eye_angle):
+            # Draw a line representing the first eye angle.
+            annotated_frame = cv2.line(annotated_frame, (int(round(first_eye_coords[1])), int(round(first_eye_coords[0]))), (int(round(first_eye_coords[1] + (eyes_line_length * np.cos(first_eye_angle)))), int(round(first_eye_coords[0] + (eyes_line_length * np.sin(first_eye_angle))))), colours[-2], 1)
+        # Draw a circle around the second eye coordinates.
+        annotated_frame = cv2.circle(annotated_frame, (int(round(second_eye_coords[1])), int(round(second_eye_coords[0]))), 1, colours[-3], - 1)
+        if not np.isnan(second_eye_angle):
+            # Draw a line representing the second eye angle.
+            annotated_frame = cv2.line(annotated_frame, (int(round(second_eye_coords[1])), int(round(second_eye_coords[0]))), (int(round(second_eye_coords[1] + (eyes_line_length * np.cos(second_eye_angle)))), int(round(second_eye_coords[0] + (eyes_line_length * np.sin(second_eye_angle))))), colours[-3], 1)
+    else:
+        # Draw a circle arround the first eye coordinates.
+        annotated_frame = cv2.circle(annotated_frame, (int(round(first_eye_coords[1])), int(round(first_eye_coords[0]))), 1, colours[-2], -1)
+        # Draw a circle arround the second eye coordinates.
+        annotated_frame = cv2.circle(annotated_frame, (int(round(second_eye_coords[1])), int(round(second_eye_coords[0]))), 1, colours[-3], - 1)
     for i in range(1, len(tail_point_coords)):
         annotated_frame = cv2.circle(annotated_frame, (int(round((tail_point_coords[i - 1][1] + tail_point_coords[i][1]) / 2)), int(round((tail_point_coords[i - 1][0] + tail_point_coords[i][0]) / 2))), 1, colours[i - 1], -1)
     annotated_frame = cv2.arrowedLine(annotated_frame, (int(round(heading_coords[1] - (line_length / 2 * np.cos(heading_angle)))), int(round(heading_coords[0] - (line_length / 2 * np.sin(heading_angle))))), (int(round(heading_coords[1] + (line_length * np.cos(heading_angle)))), int(round(heading_coords[0] + (line_length * np.sin(heading_angle))))), colours[-1], 1, tipLength = 0.2)
@@ -223,6 +238,10 @@ def annotate_tracking_results_onto_frame(frame, results, colours, line_length):
 def apply_median_blur_to_frame(frame, value = 3):
     median_blur_frame = cv2.medianBlur(frame, value)
     return median_blur_frame
+
+def apply_threshold_to_frame(frame, value = 100):
+    threshold_frame = cv2.threshold(frame, value, 255, cv2.THRESH_BINARY)[1].astype(np.uint8)
+    return threshold_frame
 
 def load_background_into_memory(background_path, convert_to_grayscale = True):
 
@@ -492,9 +511,11 @@ def preview_tracking_results(video_path, colours, n_tail_points, dist_tail_point
 
 def track_tail_in_frame(tracking_params):
 
-    frame, success, n_tail_points, dist_tail_points, dist_eyes, dist_swim_bladder, pixel_threshold = tracking_params
+    frame, success, n_tail_points, dist_tail_points, dist_eyes, dist_swim_bladder, pixel_threshold, extended_eyes_calculation, eyes_threshold = tracking_params
     first_eye_coords = [np.nan, np.nan]
     second_eye_coords = [np.nan, np.nan]
+    first_eye_angle = np.nan
+    second_eye_angle = np.nan
     heading_coords = [np.nan, np.nan]
     body_coords = [np.nan, np.nan]
     heading_angle = np.nan
@@ -506,6 +527,27 @@ def track_tail_in_frame(tracking_params):
                 first_eye_coords = [np.where(frame == np.max(frame))[0][0], np.where(frame == np.max(frame))[1][0]]
                 # Calculate the next brightest pixel that lies on the circle drawn around the first eye coordinates and has a radius equal to the distance between the eyes.
                 second_eye_coords = calculate_next_coords(first_eye_coords, dist_eyes, frame, n_angles = 100, range_angles = 2 * np.pi, tail_calculation = False)
+                if extended_eyes_calculation:
+                    # Calculate the angle between the two eyes.
+                    eye_angle = np.arctan2(second_eye_coords[0] - first_eye_coords[0], second_eye_coords[1] - first_eye_coords[1])
+                    # Apply a threshold to the frame.
+                    thresh = cv2.threshold(frame, eyes_threshold, 255, cv2.THRESH_BINARY)[1]
+                    # Find the contours of the binary regions in the thresholded frame.
+                    contours = cv2.findContours(thresh, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)[1]
+                    # Iterate through each contour in the list of contours.
+                    for i in range(len(contours)):
+                        # Check if the first eye coordinate are within the current contour.
+                        if cv2.pointPolygonTest(contours[i], (first_eye_coords[1], first_eye_coords[0]), False) == 1:
+                            # Set the first eye coordinates to the centroid of the binary region and calculate the first eye angle.
+                            M = cv2.moments(contours[i])
+                            first_eye_coords = [int(round(M['m01']/M['m00'])), int(round(M['m10']/M['m00']))]
+                            first_eye_angle = cv2.fitEllipse(contours[i])[2] * np.pi / 180
+                        # Check if the second eye coordinate are within the current contour.
+                        if cv2.pointPolygonTest(contours[i], (second_eye_coords[1], second_eye_coords[0]), False) == 1:
+                            # Set the second eye coordinates to the centroid of the binary region and calculate the second eye angle.
+                            M = cv2.moments(contours[i])
+                            second_eye_coords = [int(round(M['m01']/M['m00'])), int(round(M['m10']/M['m00']))]
+                            second_eye_angle = cv2.fitEllipse(contours[i])[2] * np.pi / 180
                 # Find the midpoint of the line that connects both eyes.
                 heading_coords = [(first_eye_coords[0] + second_eye_coords[0]) / 2, (first_eye_coords[1] + second_eye_coords[1]) / 2]
                 # Find the swim bladder coordinates by finding the next brightest coordinates that lie on a circle around the heading coordinates with a radius equal to the distance between the eyes and the swim bladder.
@@ -514,6 +556,30 @@ def track_tail_in_frame(tracking_params):
                 body_coords = [int(round((tail_point_coords[0][0] + first_eye_coords[0] + second_eye_coords[0]) / 3)), int(round((tail_point_coords[0][1] + first_eye_coords[1] + second_eye_coords[1]) / 3))]
                 # Calculate the heading angle as the angle between the body coordinates and the heading coordinates.
                 heading_angle = np.arctan2(heading_coords[0] - body_coords[0], heading_coords[1] - body_coords[1])
+                # Check whether to to an additional process to calculate eye angles.
+                if extended_eyes_calculation:
+                    # Create an array that acts as a contour for the body and contains the swim bladder coordinates and eye coordinates.
+                    body_contour = np.array([np.array([tail_point_coords[0][1], tail_point_coords[0][0]]), np.array([first_eye_coords[1], first_eye_coords[0]]), np.array([int(round(heading_coords[1] + (dist_eyes / 2 * np.cos(heading_angle)))), int(round(heading_coords[0] + (dist_eyes / 2 * np.sin(heading_angle))))]), np.array([second_eye_coords[1], second_eye_coords[0]])])
+                    # Check to see if the point that is created by drawing a line from the first eye coordinates with a length equal to half of the distance between the eyes is within the body contour. Occasionally, the angle of the eye is flipped to face towards the body instead of away. This is to check whether or not the eye angle should be flipped.
+                    if cv2.pointPolygonTest(body_contour, (first_eye_coords[1] + (dist_eyes / 2 * np.cos(first_eye_angle)), first_eye_coords[0] + (dist_eyes / 2 * np.sin(first_eye_angle))), False) == 1:
+                        # Flip the first eye angle.
+                        if first_eye_angle > 0:
+                            first_eye_angle -= np.pi
+                        else:
+                            first_eye_angle += np.pi
+                    # Check to see if the point that is created by drawing a line from the first eye coordinates with a length equal to half of the distance between the eyes is within the body contour. Occasionally, the angle of the eye is flipped to face towards the body instead of away. This is to check whether or not the eye angle should be flipped.
+                    if cv2.pointPolygonTest(body_contour, (second_eye_coords[1] + (dist_eyes / 2 * np.cos(second_eye_angle)), second_eye_coords[0] + (dist_eyes / 2 * np.sin(second_eye_angle))), False) == 1:
+                        # Flip the second eye angle.
+                        if second_eye_angle > 0:
+                            second_eye_angle -= np.pi
+                        else:
+                            second_eye_angle += np.pi
+                    if np.isnan(first_eye_angle) or np.isnan(second_eye_angle):
+                        # Return the coordinate of the brightest pixel.
+                        first_eye_coords = [np.where(frame == np.max(frame))[0][0], np.where(frame == np.max(frame))[1][0]]
+                        # Calculate the next brightest pixel that lies on the circle drawn around the first eye coordinates and has a radius equal to the distance between the eyes.
+                        second_eye_coords = calculate_next_coords(first_eye_coords, dist_eyes, frame, n_angles = 100, range_angles = 2 * np.pi, tail_calculation = False)
+                        first_eye_angle, second_eye_angle = [np.nan, np.nan]
                 # Iterate through the number of tail points.
                 for m in range(1, n_tail_points + 1):
                     # Check if this is the first tail point.
@@ -528,8 +594,12 @@ def track_tail_in_frame(tracking_params):
                         tail_angle = np.arctan2(tail_point_coords[m - 1][0] - tail_point_coords[m - 2][0], tail_point_coords[m - 1][1] - tail_point_coords[m - 2][1])
                     # Calculate the next set of tail coordinates.
                     tail_point_coords[m] = calculate_next_coords(tail_point_coords[m - 1], dist_tail_points, frame, angle = tail_angle)
-        tracking_results = np.array([np.array(first_eye_coords), np.array(second_eye_coords), np.array(heading_coords), np.array(body_coords), heading_angle, np.array(tail_point_coords)])
-        return tracking_results
+                tracking_results = np.array([np.array(first_eye_coords), np.array(second_eye_coords), first_eye_angle, second_eye_angle, np.array(heading_coords), np.array(body_coords), heading_angle, np.array(tail_point_coords)])
+                return tracking_results
+            else:
+                return None
+        else:
+            return None
     except:
         return None
 
@@ -876,7 +946,7 @@ def track_video(video_path, colours, n_tail_points, dist_tail_points, dist_eyes,
                                         # Calculate the new eye angle.
                                         eye_angle = np.arctan2(second_eye_coords[0] - first_eye_coords[0], second_eye_coords[1] - first_eye_coords[1])
                             # Apply a threshold to the frame.
-                            thresh = cv2.threshold(frame, eye_threshold, 255, cv2.THRESH_BINARY)[1]
+                            thresh = cv2.threshold(frame, eyes_threshold, 255, cv2.THRESH_BINARY)[1]
                             # Find the contours of the binary regions in the thresholded frame.
                             contours = cv2.findContours(thresh, cv2.RETR_LIST, cv2.CHAIN_APPROX_NONE)[1]
                             # Iterate through each contour in the list of contours.

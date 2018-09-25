@@ -177,7 +177,6 @@ class TrackingContent(QMainWindow):
         self.main_window_width = 0
         self.main_window_height = 0
         self.frame_number = 1
-        self.status_bar_message = ''
         self.background_path = None
         self.background_path_basename = None
         self.background_path_folder = None
@@ -185,6 +184,7 @@ class TrackingContent(QMainWindow):
         self.preview_background = False
         self.preview_background_subtracted_frame = False
         self.preview_tracking_results = False
+        self.preview_eyes_threshold = False
         self.n_tail_points = 0
         self.dist_tail_points = 0
         self.dist_eyes = 0
@@ -195,8 +195,12 @@ class TrackingContent(QMainWindow):
         self.line_length = 0
         self.pixel_threshold = 0
         self.frame_change_threshold = 0
+        self.eyes_threshold = 0
+        self.eyes_line_length = 0
         self.preview_frame = None
         self.colours = []
+        self.save_video = False
+        self.extended_eyes_calculation = False
 
     # Defining Get Functions
     def get_main_window_attributes(self):
@@ -371,7 +375,7 @@ class TrackingContent(QMainWindow):
         self.preview_frame_number_textbox = QLineEdit(self)
         self.preview_frame_number_textbox.move(150, 1060)
         self.preview_frame_number_textbox.resize(100, 25)
-        self.preview_frame_number_textbox.setAlignment(Qt.AlignLeft | Qt.AlignTop)
+        self.preview_frame_number_textbox.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
         self.preview_frame_number_textbox.setFont(font)
         self.preview_frame_number_textbox.returnPressed.connect(self.check_preview_frame_number_textbox)
         self.update_preview_frame_number_textbox(inactivate = True)
@@ -473,6 +477,28 @@ class TrackingContent(QMainWindow):
         self.preview_tracking_results_checkbox_label.setText('Preview Tracking Results')
         self.preview_tracking_results_checkbox_label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
         self.preview_tracking_results_checkbox_label.setFont(font)
+
+        # self.preview_extended_eyes_calculation_checkbox = QCheckBox(self)
+        # self.preview_extended_eyes_calculation_checkbox.move(1025, 1230)
+        # self.preview_extended_eyes_calculation_checkbox.stateChanged.connect(self.check_preview_extended_eyes_calculation_checkbox)
+        # self.preview_extended_eyes_calculation_checkbox.setEnabled(False)
+        # self.preview_extended_eyes_calculation_checkbox_label = QLabel(self)
+        # self.preview_extended_eyes_calculation_checkbox_label.move(1045, 1233)
+        # self.preview_extended_eyes_calculation_checkbox_label.resize(500, 20)
+        # self.preview_extended_eyes_calculation_checkbox_label.setText('Preview Extended Eyes Calculation')
+        # self.preview_extended_eyes_calculation_checkbox_label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        # self.preview_extended_eyes_calculation_checkbox_label.setFont(font)
+
+        self.preview_eyes_threshold_checkbox = QCheckBox(self)
+        self.preview_eyes_threshold_checkbox.move(1025, 1230)
+        self.preview_eyes_threshold_checkbox.stateChanged.connect(self.check_preview_eyes_threshold_checkbox)
+        self.preview_eyes_threshold_checkbox.setEnabled(False)
+        self.preview_eyes_threshold_checkbox_label = QLabel(self)
+        self.preview_eyes_threshold_checkbox_label.move(1045, 1233)
+        self.preview_eyes_threshold_checkbox_label.resize(500, 20)
+        self.preview_eyes_threshold_checkbox_label.setText('Preview Eyes Threshold')
+        self.preview_eyes_threshold_checkbox_label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        self.preview_eyes_threshold_checkbox_label.setFont(font)
         self.update_preview_parameters(inactivate = True)
     def add_tracking_parameters_window(self):
         font = QFont()
@@ -628,6 +654,63 @@ class TrackingContent(QMainWindow):
         self.tracking_frame_change_threshold_textbox.setAlignment(Qt.AlignLeft | Qt.AlignTop)
         self.tracking_frame_change_threshold_textbox.setFont(font)
         self.tracking_frame_change_threshold_textbox.returnPressed.connect(self.check_tracking_frame_change_threshold_textbox)
+
+        self.eyes_threshold_textbox_label = QLabel(self)
+        self.eyes_threshold_textbox_label.move(1500, 500)
+        self.eyes_threshold_textbox_label.resize(500, 20)
+        self.eyes_threshold_textbox_label.setText('Eyes Threshold: ')
+        self.eyes_threshold_textbox_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        self.eyes_threshold_textbox_label.setFont(font)
+        self.eyes_threshold_textbox = QLineEdit(self)
+        self.eyes_threshold_textbox.move(2000, 500)
+        self.eyes_threshold_textbox.resize(80, 20)
+        self.eyes_threshold_textbox.setText('{0}'.format(self.eyes_threshold))
+        self.eyes_threshold_textbox.setAlignment(Qt.AlignLeft | Qt.AlignTop)
+        self.eyes_threshold_textbox.setFont(font)
+        self.eyes_threshold_textbox.returnPressed.connect(self.check_eyes_threshold_textbox)
+
+        self.eyes_line_length_textbox_label = QLabel(self)
+        self.eyes_line_length_textbox_label.move(1500, 540)
+        self.eyes_line_length_textbox_label.resize(500, 20)
+        self.eyes_line_length_textbox_label.setText('Eyes Line Length: ')
+        self.eyes_line_length_textbox_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        self.eyes_line_length_textbox_label.setFont(font)
+        self.eyes_line_length_textbox = QLineEdit(self)
+        self.eyes_line_length_textbox.move(2000, 540)
+        self.eyes_line_length_textbox.resize(80, 20)
+        self.eyes_line_length_textbox.setText('{0}'.format(self.eyes_threshold))
+        self.eyes_line_length_textbox.setAlignment(Qt.AlignLeft | Qt.AlignTop)
+        self.eyes_line_length_textbox.setFont(font)
+        self.eyes_line_length_textbox.returnPressed.connect(self.check_eyes_line_length_textbox)
+
+        self.save_tracked_video_combobox_label = QLabel(self)
+        self.save_tracked_video_combobox_label.move(1500, 580)
+        self.save_tracked_video_combobox_label.resize(500, 20)
+        self.save_tracked_video_combobox_label.setText('Save Tracked Video: ')
+        self.save_tracked_video_combobox_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        self.save_tracked_video_combobox_label.setFont(font)
+        self.save_tracked_video_combobox = QComboBox(self)
+        self.save_tracked_video_combobox.addItem('True')
+        self.save_tracked_video_combobox.addItem('False')
+        self.save_tracked_video_combobox.move(2000, 580)
+        self.save_tracked_video_combobox.resize(80, 20)
+        self.save_tracked_video_combobox.setCurrentIndex(1)
+        self.save_tracked_video_combobox.currentIndexChanged.connect(self.check_save_tracked_video_combobox)
+
+        self.extended_eyes_calculation_combobox_label = QLabel(self)
+        self.extended_eyes_calculation_combobox_label.move(1500, 620)
+        self.extended_eyes_calculation_combobox_label.resize(500, 20)
+        self.extended_eyes_calculation_combobox_label.setText('Extended Eyes Calculation: ')
+        self.extended_eyes_calculation_combobox_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        self.extended_eyes_calculation_combobox_label.setFont(font)
+        self.extended_eyes_calculation_combobox = QComboBox(self)
+        self.extended_eyes_calculation_combobox.addItem('True')
+        self.extended_eyes_calculation_combobox.addItem('False')
+        self.extended_eyes_calculation_combobox.move(2000, 620)
+        self.extended_eyes_calculation_combobox.resize(80, 20)
+        self.extended_eyes_calculation_combobox.setCurrentIndex(1)
+        self.extended_eyes_calculation_combobox.currentIndexChanged.connect(self.check_extended_eyes_calculation_combobox)
+
         self.trigger_load_default_tracking_parameters()
         self.trigger_load_default_colours()
         self.update_tracking_parameters(inactivate = True)
@@ -635,28 +718,26 @@ class TrackingContent(QMainWindow):
         font = QFont()
         font.setPointSize(10)
         self.load_default_tracking_parameters_button = QPushButton('Load Default Tracking Parameters', self)
-        self.load_default_tracking_parameters_button.move(1800, 500)
-        self.load_default_tracking_parameters_button.resize(400, 100)
+        self.load_default_tracking_parameters_button.move(1800, 660)
+        self.load_default_tracking_parameters_button.resize(400, 80)
         self.load_default_tracking_parameters_button.setFont(font)
         self.load_default_tracking_parameters_button.clicked.connect(self.check_load_default_tracking_parameters_button)
 
         self.load_previous_tracking_parameters_button = QPushButton('Load Previous Tracking Parameters', self)
-        self.load_previous_tracking_parameters_button.move(1800, 610)
-        self.load_previous_tracking_parameters_button.resize(400, 100)
+        self.load_previous_tracking_parameters_button.move(1800, 750)
+        self.load_previous_tracking_parameters_button.resize(400, 80)
         self.load_previous_tracking_parameters_button.setFont(font)
         self.load_previous_tracking_parameters_button.clicked.connect(self.trigger_load_previous_tracking_parameters)
 
         self.save_current_tracking_parameters_button = QPushButton('Save Current Tracking Parameters', self)
-        self.save_current_tracking_parameters_button.move(1800, 720)
-        self.save_current_tracking_parameters_button.resize(400, 100)
+        self.save_current_tracking_parameters_button.move(1800, 840)
+        self.save_current_tracking_parameters_button.resize(400, 80)
         self.save_current_tracking_parameters_button.setFont(font)
         self.save_current_tracking_parameters_button.clicked.connect(self.trigger_save_current_tracking_parameters)
 
-        font.setPointSize(12)
-
         self.track_video_button = QPushButton('Track Video', self)
-        self.track_video_button.move(1700, 830)
-        self.track_video_button.resize(600, 150)
+        self.track_video_button.move(1800, 930)
+        self.track_video_button.resize(400, 80)
         self.track_video_button.setFont(font)
         self.track_video_button.clicked.connect(self.trigger_track_video)
         self.update_tracking_parameters_buttons(inactivate = True)
@@ -782,6 +863,8 @@ class TrackingContent(QMainWindow):
                 self.preview_background_subtracted_frame_checkbox.setEnabled(True)
             if not self.preview_tracking_results_checkbox.isEnabled():
                 self.preview_tracking_results_checkbox.setEnabled(True)
+            if not self.preview_eyes_threshold_checkbox.isEnabled():
+                self.preview_eyes_threshold_checkbox.setEnabled(True)
         if inactivate:
             if self.preview_background_checkbox.isEnabled():
                 self.preview_background_checkbox.setEnabled(False)
@@ -789,6 +872,8 @@ class TrackingContent(QMainWindow):
                 self.preview_background_subtracted_frame_checkbox.setEnabled(False)
             if self.preview_tracking_results_checkbox.isEnabled():
                 self.preview_tracking_results_checkbox.setEnabled(False)
+            if self.preview_eyes_threshold_checkbox.isEnabled():
+                self.preview_eyes_threshold_checkbox.setEnabled(False)
     def update_frame_window_slider(self, activate = False, inactivate = False):
         if activate:
             if not self.frame_window_slider.isEnabled():
@@ -875,6 +960,14 @@ class TrackingContent(QMainWindow):
                 self.tracking_pixel_threshold_textbox.setEnabled(True)
             if not self.tracking_frame_change_threshold_textbox.isEnabled():
                 self.tracking_frame_change_threshold_textbox.setEnabled(True)
+            if not self.eyes_threshold_textbox.isEnabled():
+                self.eyes_threshold_textbox.setEnabled(True)
+            if not self.eyes_line_length_textbox.isEnabled():
+                self.eyes_line_length_textbox.setEnabled(True)
+            if not self.save_tracked_video_combobox.isEnabled():
+                self.save_tracked_video_combobox.setEnabled(True)
+            if not self.extended_eyes_calculation_combobox.isEnabled():
+                self.extended_eyes_calculation_combobox.setEnabled(True)
         if inactivate:
             if self.tracking_n_tail_points_textbox.isEnabled():
                 self.tracking_n_tail_points_textbox.setEnabled(False)
@@ -896,6 +989,14 @@ class TrackingContent(QMainWindow):
                 self.tracking_pixel_threshold_textbox.setEnabled(False)
             if self.tracking_frame_change_threshold_textbox.isEnabled():
                 self.tracking_frame_change_threshold_textbox.setEnabled(False)
+            if self.eyes_threshold_textbox.isEnabled():
+                self.eyes_threshold_textbox.setEnabled(False)
+            if self.eyes_line_length_textbox.isEnabled():
+                self.eyes_line_length_textbox.setEnabled(False)
+            if self.save_tracked_video_combobox.isEnabled():
+                self.save_tracked_video_combobox.setEnabled(False)
+            if self.extended_eyes_calculation_combobox.isEnabled():
+                self.extended_eyes_calculation_combobox.setEnabled(False)
         if self.tracking_n_tail_points_textbox.isEnabled():
             self.tracking_n_tail_points_textbox.setText('{0}'.format(self.n_tail_points))
         if self.tracking_dist_tail_points_textbox.isEnabled():
@@ -916,6 +1017,10 @@ class TrackingContent(QMainWindow):
             self.tracking_pixel_threshold_textbox.setText('{0}'.format(self.pixel_threshold))
         if self.tracking_frame_change_threshold_textbox.isEnabled():
             self.tracking_frame_change_threshold_textbox.setText('{0}'.format(self.frame_change_threshold))
+        if self.eyes_threshold_textbox.isEnabled():
+            self.eyes_threshold_textbox.setText('{0}'.format(self.eyes_threshold))
+        if self.eyes_line_length_textbox.isEnabled():
+            self.eyes_line_length_textbox.setText('{0}'.format(self.eyes_line_length))
     def update_tracking_parameters_buttons(self, activate = False, inactivate = False):
         if activate:
             if not self.load_default_tracking_parameters_button.isEnabled():
@@ -960,7 +1065,7 @@ class TrackingContent(QMainWindow):
             if self.save_current_colours_button.isEnabled():
                 self.save_current_colours_button.setEnabled(False)
     def update_colours(self):
-        if self.n_tail_points < len(self.colours) - 3:
+        if self.n_tail_points < len(self.colours) - 3 and len(self.colours) == len(self.colour_label_list):
             for i in range(len(self.colours) - 3 - self.n_tail_points):
                 self.colour_label_list[len(self.colour_label_list) - 1].deleteLater()
                 self.colour_textbox_list[len(self.colour_textbox_list) - 1].deleteLater()
@@ -982,7 +1087,7 @@ class TrackingContent(QMainWindow):
                 if i < len(self.colours) - 3 :
                     self.colour_label_list[i].setText('Tail Point {0}: '.format(i + 1))
                 self.colour_textbox_list[i].setText('{0}'.format(self.colours[i]))
-        elif self.n_tail_points > len(self.colours) - 3:
+        elif self.n_tail_points > len(self.colours) - 3 and len(self.colours) == len(self.colour_label_list):
             font = QFont()
             font.setPointSize(10)
             for i in range(self.n_tail_points + 3 - len(self.colours)):
@@ -1086,7 +1191,7 @@ class TrackingContent(QMainWindow):
             else:
                 self.update_preview_parameters(activate_preview_background = True)
     def trigger_open_video(self):
-        self.video_path, _ = QFileDialog.getOpenFileName(self,"Open Video File", "","Video Files (*.avi)", options=QFileDialog.Options())
+        self.video_path, _ = QFileDialog.getOpenFileName(self,"Open Video File", "","Video Files (*.avi; *.mp4)", options=QFileDialog.Options())
         if self.video_path:
             self.get_video_attributes()
             self.update_descriptors()
@@ -1112,6 +1217,18 @@ class TrackingContent(QMainWindow):
             self.update_preview_frame_number_textbox(inactivate = True)
             self.update_update_preview_button(inactivate = True)
             self.update_frame_change_buttons(inactivate = True)
+        elif self.preview_eyes_threshold:
+            if self.video_path is not None:
+                success, self.frame = ut.load_frame_into_memory(self.video_path, self.frame_number - 1)
+                if success and self.frame is not None:
+                    use_grayscale = True
+                    self.frame = ut.apply_threshold_to_frame(ut.apply_median_blur_to_frame(ut.subtract_background_from_frame(self.frame, self.background)), self.eyes_threshold)
+                    self.update_preview_frame(self.frame, self.video_frame_width, self.video_frame_height, grayscale = use_grayscale)
+                    self.update_preview_frame_window()
+                    self.update_frame_window_slider(activate = True)
+                    self.update_preview_frame_number_textbox(activate = True)
+                    self.update_update_preview_button(activate = True)
+                    self.update_frame_change_buttons(activate = True)
         else:
             if self.video_path is not None:
                 success, self.frame = ut.load_frame_into_memory(self.video_path, self.frame_number - 1)
@@ -1120,14 +1237,14 @@ class TrackingContent(QMainWindow):
                     if self.preview_background_subtracted_frame:
                         self.frame = ut.subtract_background_from_frame(self.frame, self.background)
                         if self.preview_tracking_results:
-                            results = ut.track_tail_in_frame([ut.apply_median_blur_to_frame(self.frame), success, self.n_tail_points, self.dist_tail_points, self.dist_eyes, self.dist_swim_bladder, self.pixel_threshold])
+                            results = ut.track_tail_in_frame([ut.apply_median_blur_to_frame(self.frame), success, self.n_tail_points, self.dist_tail_points, self.dist_eyes, self.dist_swim_bladder, self.pixel_threshold, self.extended_eyes_calculation, self.eyes_threshold])
                             if results is not None:
-                                self.frame = ut.annotate_tracking_results_onto_frame(self.frame, results, self.colours, self.line_length)
+                                self.frame = ut.annotate_tracking_results_onto_frame(self.frame, results, self.colours, self.line_length, self.extended_eyes_calculation, self.eyes_line_length)
                                 use_grayscale = False
                     elif self.preview_tracking_results:
-                        results = ut.track_tail_in_frame([ut.apply_median_blur_to_frame(ut.subtract_background_from_frame(self.frame, self.background)), success, self.n_tail_points, self.dist_tail_points, self.dist_eyes, self.dist_swim_bladder, self.pixel_threshold])
+                        results = ut.track_tail_in_frame([ut.apply_median_blur_to_frame(ut.subtract_background_from_frame(self.frame, self.background)), success, self.n_tail_points, self.dist_tail_points, self.dist_eyes, self.dist_swim_bladder, self.pixel_threshold, self.extended_eyes_calculation, self.eyes_threshold])
                         if results is not None:
-                            self.frame = ut.annotate_tracking_results_onto_frame(self.frame, results, self.colours, self.line_length)
+                            self.frame = ut.annotate_tracking_results_onto_frame(self.frame, results, self.colours, self.line_length, self.extended_eyes_calculation, self.eyes_line_length)
                             use_grayscale = False
                     self.update_preview_frame(self.frame, self.video_frame_width, self.video_frame_height, grayscale = use_grayscale)
                     self.update_preview_frame_window()
@@ -1148,6 +1265,12 @@ class TrackingContent(QMainWindow):
         self.line_length = 5
         self.pixel_threshold = 40
         self.frame_change_threshold = 10
+        self.eyes_threshold = 100
+        self.eyes_line_length = 5
+        self.save_video = False
+        self.save_tracked_video_combobox.setCurrentIndex(1)
+        self.extended_eyes_calculation = False
+        self.extended_eyes_calculation_combobox.setCurrentIndex(1)
         self.update_tracking_parameters()
         if self.preview_frame:
             self.trigger_update_preview()
@@ -1164,6 +1287,10 @@ class TrackingContent(QMainWindow):
             self.line_length = tracking_parameters['line_length']
             self.pixel_threshold = tracking_parameters['pixel_threshold']
             self.frame_change_threshold = tracking_parameters['frame_change_threshold']
+            self.eyes_threshold = tracking_parameters['eyes_threshold']
+            self.eyes_line_length = tracking_parameters['eyes_line_length']
+            self.save_video = tracking_parameters['save_video']
+            self.extended_eyes_calculation = tracking_parameters['extended_eyes_calculation']
             self.update_colours()
             self.update_tracking_parameters()
             self.trigger_update_preview()
@@ -1175,7 +1302,9 @@ class TrackingContent(QMainWindow):
             'dist_eyes' : self.dist_eyes, 'dist_swim_bladder' : self.dist_swim_bladder,
             'frame_batch_size' : self.frame_batch_size, 'starting_frame' : self.starting_frame,
             'n_frames' : self.n_frames, 'line_length' : self.line_length,
-            'pixel_threshold' : self.pixel_threshold, 'frame_change_threshold' : self.frame_change_threshold}
+            'pixel_threshold' : self.pixel_threshold, 'frame_change_threshold' : self.frame_change_threshold,
+            'eyes_threshold' : self.eyes_threshold, 'eyes_line_length' : self.eyes_line_length,
+            'save_video' : self.save_video, 'extended_eyes_calculation' : self.extended_eyes_calculation}
         np.save('tracking_parameters.npy', tracking_parameters)
     def trigger_track_video(self):
         self.track_video_thread = TrackVideoThread()
@@ -1193,13 +1322,10 @@ class TrackingContent(QMainWindow):
         self.track_video_thread.pixel_threshold = self.pixel_threshold
         self.track_video_thread.frame_change_threshold = self.frame_change_threshold
         self.track_video_thread.colours = [(self.colours[i][2], self.colours[i][1], self.colours[i][0]) for i in range(len(self.colours))]
+        self.track_video_thread.save_video = self.save_video
+        self.track_video_thread.extended_eyes_calculation = self.extended_eyes_calculation
+        self.track_video_thread.eyes_threshold = self.eyes_threshold
         self.track_video_thread.start()
-        # self.track_video_thread.start(self.video_path, self.colours, self.n_tail_points, self.dist_tail_points, self.dist_eyes, self.dist_swim_bladder, self.n_frames, self.starting_frame, self.save_path, self.background_path, self.line_length, self.video_fps, self.pixel_threshold, self.frame_change_threshold)
-        # background_path = self.background_path
-        # if self.background_path == 'Background calculated and loaded into memory/Background calculated and loaded into memory':
-        #     background_path = None
-        # colours = [(self.colours[i][2], self.colours[i][1], self.colours[i][0]) for i in range(len(self.colours))]
-        # ut.track_video(self.video_path, colours, self.n_tail_points, self.dist_tail_points, self.dist_eyes, self.dist_swim_bladder, n_frames = self.n_frames, starting_frame = self.starting_frame, save_path = self.save_path, background_path = background_path, line_length = self.line_length, video_fps = self.video_fps, pixel_threshold = self.pixel_threshold, frame_change_threshold = self.frame_change_threshold)
     def trigger_unload_all_tracking(self):
         if self.preview_background_checkbox.isChecked():
             self.preview_background_checkbox.setChecked(False)
@@ -1207,6 +1333,10 @@ class TrackingContent(QMainWindow):
             self.preview_background_subtracted_frame_checkbox.setChecked(False)
         if self.preview_tracking_results_checkbox.isChecked():
             self.preview_tracking_results_checkbox.setChecked(False)
+        if self.save_tracked_video_combobox.currentIndex() == 0:
+            self.save_tracked_video_combobox.setCurrentIndex(1)
+        if self.extended_eyes_calculation_combobox.currentIndex() == 0:
+            self.extended_eyes_calculation_combobox.setCurrentIndex(1)
         for i in range(len(self.colours)):
             self.colour_label_list[-1].deleteLater()
             self.colour_textbox_list[-1].deleteLater()
@@ -1240,9 +1370,9 @@ class TrackingContent(QMainWindow):
     def trigger_load_default_colours(self):
         self.colours = [[] for i in range(self.n_tail_points + 3)]
         colour_map = cm.gnuplot2
-        self.colours[-1] = (49, 191, 114)
-        self.colours[-2] = (139, 139, 0)
-        self.colours[-3] = (139, 139, 0)
+        self.colours[-1] = (0, 255, 255)
+        self.colours[-2] = (255, 0, 127)
+        self.colours[-3] = (0, 255, 0)
         for i in range(self.n_tail_points):
             colour = colour_map(i / (self.n_tail_points - 1))[:3]
             self.colours[i] = (int(colour[0] * 255), int(colour[1] * 255), int(colour[2] * 255))
@@ -1251,12 +1381,14 @@ class TrackingContent(QMainWindow):
             colours = np.load('colours.npy').item()
             self.colours = colours['colours']
             self.update_colours()
-            self.trigger_update_preview()
+            if self.preview_frame:
+                self.trigger_update_preview()
         except:
-            print('Error: tracking parameters not found.')
+            print('Error: colour parameters not found.')
             self.trigger_load_default_colours()
             self.update_colours()
-            self.trigger_update_preview()
+            if self.preview_frame:
+                self.trigger_update_preview()
     def trigger_save_current_colours(self):
         colours = {'colours' : self.colours}
         np.save('colours.npy', colours)
@@ -1280,6 +1412,9 @@ class TrackingContent(QMainWindow):
         self.trigger_update_preview()
     def check_preview_background_subtracted_frame_checkbox(self):
         self.preview_background_subtracted_frame = self.preview_background_subtracted_frame_checkbox.isChecked()
+        self.trigger_update_preview()
+    def check_preview_eyes_threshold_checkbox(self):
+        self.preview_eyes_threshold = self.preview_eyes_threshold_checkbox.isChecked()
         self.trigger_update_preview()
     def check_large_frame_decrease_button(self):
         self.frame_number -= 100
@@ -1389,6 +1524,24 @@ class TrackingContent(QMainWindow):
                 self.trigger_update_preview()
         else:
             self.tracking_frame_change_threshold_textbox.setText(str(self.frame_change_threshold))
+    def check_eyes_threshold_textbox(self):
+        if self.eyes_threshold_textbox.text().isdigit():
+            if int(self.eyes_threshold_textbox.text()) > 0 and int(self.eyes_threshold_textbox.text()) <= 255:
+                self.eyes_threshold = int(self.eyes_threshold_textbox.text())
+            elif int(self.eyes_threshold_textbox.text()) > 255:
+                self.eyes_threshold = 255
+                self.eyes_threshold_textbox.setText('255')
+            if self.preview_tracking_results or self.preview_eyes_threshold:
+                self.trigger_update_preview()
+        else:
+            self.eyes_threshold_textbox.setText(str(self.frame_change_threshold))
+    def check_eyes_line_length_textbox(self):
+        if self.eyes_line_length_textbox.text().isdigit():
+            self.eyes_line_length = int(self.eyes_line_length_textbox.text())
+            if self.preview_tracking_results:
+                self.trigger_update_preview()
+        else:
+            self.eyes_line_length_textbox.setText(str(self.eyes_line_length))
     def check_load_default_tracking_parameters_button(self):
         self.trigger_load_default_tracking_parameters()
         self.update_colours()
@@ -1396,6 +1549,20 @@ class TrackingContent(QMainWindow):
         self.trigger_load_default_colours()
         self.update_colours()
         self.trigger_update_preview()
+    def check_save_tracked_video_combobox(self):
+        current_index = self.save_tracked_video_combobox.currentIndex()
+        if current_index == 0:
+            self.save_video = True
+        if current_index == 1:
+            self.save_video = False
+    def check_extended_eyes_calculation_combobox(self):
+        current_index = self.extended_eyes_calculation_combobox.currentIndex()
+        if current_index == 0:
+            self.extended_eyes_calculation = True
+        if current_index == 1:
+            self.extended_eyes_calculation = False
+        if self.preview_tracking_results:
+            self.trigger_update_preview()
 
 class TrackVideoThread(QThread):
 
@@ -1415,11 +1582,14 @@ class TrackVideoThread(QThread):
         self.video_fps = None
         self.pixel_threshold = None
         self.frame_change_threshold = None
+        self.save_video = None
+        self.extended_eyes_calculation = None
+        self.eyes_threshold = None
 
     def run(self):
         if self.background_path == 'Background calculated and loaded into memory/Background calculated and loaded into memory':
             self.background_path = None
-        ut.track_video(self.video_path, self.colours, self.n_tail_points, self.dist_tail_points, self.dist_eyes, self.dist_swim_bladder, n_frames = self.n_frames, starting_frame = self.starting_frame, save_path = self.save_path, background_path = self.background_path, line_length = self.line_length, video_fps = self.video_fps, pixel_threshold = self.pixel_threshold, frame_change_threshold = self.frame_change_threshold)
+        ut.track_video(self.video_path, self.colours, self.n_tail_points, self.dist_tail_points, self.dist_eyes, self.dist_swim_bladder, save_video = self.save_video, extended_eyes_calculation = self.extended_eyes_calculation, n_frames = self.n_frames, starting_frame = self.starting_frame, save_path = self.save_path, background_path = self.background_path, line_length = self.line_length, video_fps = self.video_fps, pixel_threshold = self.pixel_threshold, frame_change_threshold = self.frame_change_threshold, eyes_threshold = self.eyes_threshold)
         # ut.track_tail_in_video_without_multiprocessing(self.video_path, self.colours, self.n_tail_points, self.dist_tail_points, self.dist_eyes, self.dist_swim_bladder, init_frame_batch_size = 50, init_starting_frame = 0, save_path = self.save_path, background_path = self.background_path, line_length = self.line_length, video_fps = self.video_fps, n_frames = self.n_frames, pixel_threshold = self.pixel_threshold, frame_change_threshold = self.frame_change_threshold)
 
 class PlottingWindow(QScrollArea):
@@ -1441,7 +1611,7 @@ class PlottingContent(QMainWindow):
         self.initialize_class_variables()
         self.add_tracking_preview_frame_window()
         self.add_frame_window_slider()
-        self.add_preview_frame_number_textbox()
+        self.add_tracking_video_time_textbox()
         self.add_update_preview_button()
         self.add_frame_change_buttons()
         self.add_video_playback_buttons()
@@ -1451,6 +1621,9 @@ class PlottingContent(QMainWindow):
     def initialize_class_variables(self):
         self.frame_number = 1
         self.video_path = None
+        self.play_video_slow_speed = False
+        self.play_video_medium_speed = False
+        self.play_video_max_speed = False
 
     def get_video_attributes(self):
         self.video_path_folder = os.path.dirname(self.video_path)
@@ -1482,19 +1655,19 @@ class PlottingContent(QMainWindow):
         self.frame_window_slider.setSingleStep(0)
         self.frame_window_slider.sliderMoved.connect(self.check_frame_window_slider_moved)
         self.update_frame_window_slider(inactivate = True)
-    def add_preview_frame_number_textbox(self):
+    def add_tracking_video_time_textbox(self):
         font = QFont()
         font.setPointSize(10)
         self.tracking_video_time_textbox_label = QLabel(self)
         self.tracking_video_time_textbox_label.move(5, 1060)
-        self.tracking_video_time_textbox_label.resize(155, 25)
+        self.tracking_video_time_textbox_label.resize(145, 25)
         self.tracking_video_time_textbox_label.setText('Time (seconds): ')
         self.tracking_video_time_textbox_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
         self.tracking_video_time_textbox_label.setFont(font)
         self.tracking_video_time_textbox = QLineEdit(self)
-        self.tracking_video_time_textbox.move(160, 1060)
+        self.tracking_video_time_textbox.move(150, 1060)
         self.tracking_video_time_textbox.resize(100, 25)
-        self.tracking_video_time_textbox.setAlignment(Qt.AlignLeft | Qt.AlignTop)
+        self.tracking_video_time_textbox.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
         self.tracking_video_time_textbox.setFont(font)
         self.tracking_video_time_textbox.returnPressed.connect(self.check_tracking_video_time_textbox)
         self.update_tracking_video_time_textbox(inactivate = True)
@@ -1503,60 +1676,81 @@ class PlottingContent(QMainWindow):
         font.setPointSize(10)
         self.update_preview_button = QPushButton('Update Preview', self)
         self.update_preview_button.move(5, 1090)
-        self.update_preview_button.resize(255, 50)
+        self.update_preview_button.resize(245, 50)
         self.update_preview_button.setFont(font)
         self.update_preview_button.clicked.connect(self.check_tracking_video_time_textbox)
         self.update_update_preview_button(inactivate = True)
     def add_frame_change_buttons(self):
         self.large_frame_decrease_button = QPushButton(self)
         self.large_frame_decrease_button.setIcon(QIcon('button_icon_1.png'))
-        self.large_frame_decrease_button.setIconSize(QSize(76, 76))
-        self.large_frame_decrease_button.move(555, 1060)
-        self.large_frame_decrease_button.resize(80, 80)
+        self.large_frame_decrease_button.setIconSize(QSize(46, 46))
+        self.large_frame_decrease_button.move(635, 1060)
+        self.large_frame_decrease_button.resize(50, 50)
         self.large_frame_decrease_button.clicked.connect(self.check_large_frame_decrease_button)
+
+        self.medium_frame_decrease_button = QPushButton(self)
+        self.medium_frame_decrease_button.setIcon(QIcon('button_icon_2.png'))
+        self.medium_frame_decrease_button.setIconSize(QSize(46, 46))
+        self.medium_frame_decrease_button.move(690, 1060)
+        self.medium_frame_decrease_button.resize(50, 50)
+        self.medium_frame_decrease_button.clicked.connect(self.check_medium_frame_decrease_button)
 
         self.small_frame_decrease_button = QPushButton(self)
         self.small_frame_decrease_button.setIcon(QIcon('button_icon_3.png'))
-        self.small_frame_decrease_button.setIconSize(QSize(76, 76))
-        self.small_frame_decrease_button.move(640, 1060)
-        self.small_frame_decrease_button.resize(80, 80)
+        self.small_frame_decrease_button.setIconSize(QSize(46, 46))
+        self.small_frame_decrease_button.move(745, 1060)
+        self.small_frame_decrease_button.resize(50, 50)
         self.small_frame_decrease_button.clicked.connect(self.check_small_frame_decrease_button)
 
         self.small_frame_increase_button = QPushButton(self)
         self.small_frame_increase_button.setIcon(QIcon('button_icon_4.png'))
-        self.small_frame_increase_button.setIconSize(QSize(76, 76))
-        self.small_frame_increase_button.move(725, 1060)
-        self.small_frame_increase_button.resize(80, 80)
+        self.small_frame_increase_button.setIconSize(QSize(46, 46))
+        self.small_frame_increase_button.move(800, 1060)
+        self.small_frame_increase_button.resize(50, 50)
         self.small_frame_increase_button.clicked.connect(self.check_small_frame_increase_button)
+
+        self.medium_frame_increase_button = QPushButton(self)
+        self.medium_frame_increase_button.setIcon(QIcon('button_icon_5.png'))
+        self.medium_frame_increase_button.setIconSize(QSize(46, 46))
+        self.medium_frame_increase_button.move(855, 1060)
+        self.medium_frame_increase_button.resize(50, 50)
+        self.medium_frame_increase_button.clicked.connect(self.check_medium_frame_increase_button)
 
         self.large_frame_increase_button = QPushButton(self)
         self.large_frame_increase_button.setIcon(QIcon('button_icon_6.png'))
-        self.large_frame_increase_button.setIconSize(QSize(76, 76))
-        self.large_frame_increase_button.move(810, 1060)
-        self.large_frame_increase_button.resize(80, 80)
+        self.large_frame_increase_button.setIconSize(QSize(46, 46))
+        self.large_frame_increase_button.move(910, 1060)
+        self.large_frame_increase_button.resize(50, 50)
         self.large_frame_increase_button.clicked.connect(self.check_large_frame_increase_button)
         self.update_frame_change_buttons(inactivate = True)
     def add_video_playback_buttons(self):
         self.pause_video_button = QPushButton(self)
         self.pause_video_button.setIcon(QIcon('button_icon_7.png'))
         self.pause_video_button.setIconSize(QSize(76, 76))
-        self.pause_video_button.move(285, 1060)
+        self.pause_video_button.move(275, 1060)
         self.pause_video_button.resize(80, 80)
         self.pause_video_button.clicked.connect(self.check_pause_video_button)
 
-        self.play_video_normal_speed_button = QPushButton(self)
-        self.play_video_normal_speed_button.setIcon(QIcon('button_icon_8.png'))
-        self.play_video_normal_speed_button.setIconSize(QSize(76, 76))
-        self.play_video_normal_speed_button.move(370, 1060)
-        self.play_video_normal_speed_button.resize(80, 80)
-        self.play_video_normal_speed_button.clicked.connect(self.check_play_video_normal_speed_button)
+        self.play_video_slow_speed_button = QPushButton(self)
+        self.play_video_slow_speed_button.setIcon(QIcon('button_icon_8.png'))
+        self.play_video_slow_speed_button.setIconSize(QSize(76, 76))
+        self.play_video_slow_speed_button.move(360, 1060)
+        self.play_video_slow_speed_button.resize(80, 80)
+        self.play_video_slow_speed_button.clicked.connect(self.check_play_video_slow_speed_button)
+
+        self.play_video_medium_speed_button = QPushButton(self)
+        self.play_video_medium_speed_button.setIcon(QIcon('button_icon_9.png'))
+        self.play_video_medium_speed_button.setIconSize(QSize(76, 76))
+        self.play_video_medium_speed_button.move(445, 1060)
+        self.play_video_medium_speed_button.resize(80, 80)
+        self.play_video_medium_speed_button.clicked.connect(self.check_play_video_medium_speed_button)
 
         self.play_video_max_speed_button = QPushButton(self)
-        self.play_video_max_speed_button.setIcon(QIcon('button_icon_9.png'))
+        self.play_video_max_speed_button.setIcon(QIcon('button_icon_10.png'))
         self.play_video_max_speed_button.setIconSize(QSize(76, 76))
-        self.play_video_max_speed_button.move(455, 1060)
+        self.play_video_max_speed_button.move(530, 1060)
         self.play_video_max_speed_button.resize(80, 80)
-        # self.play_video_max_speed_button.clicked.connect(self.check_play_video_max_speed_button)
+        self.play_video_max_speed_button.clicked.connect(self.check_play_video_max_speed_button)
         self.update_video_playback_buttons(inactivate = True)
     def add_data_plot_window(self):
         self.data_plot_window = QScrollArea(self)
@@ -1588,6 +1782,9 @@ class PlottingContent(QMainWindow):
     def update_data_plot_window(self, clear = False):
         if not clear:
             self.data_plot_window.setWidget(self.data_plot)
+        else:
+            self.data_plot.deleteLater()
+            self.data_plot.setGeometry(0, 0, 0, 0)
     def update_frame_window_slider(self, activate = False, inactivate = False):
         if activate:
             if not self.frame_window_slider.isEnabled():
@@ -1627,19 +1824,27 @@ class PlottingContent(QMainWindow):
         if activate:
             if not self.large_frame_decrease_button.isEnabled():
                 self.large_frame_decrease_button.setEnabled(True)
+            if not self.medium_frame_decrease_button.isEnabled():
+                self.medium_frame_decrease_button.setEnabled(True)
             if not self.small_frame_decrease_button.isEnabled():
                 self.small_frame_decrease_button.setEnabled(True)
             if not self.small_frame_increase_button.isEnabled():
                 self.small_frame_increase_button.setEnabled(True)
+            if not self.medium_frame_increase_button.isEnabled():
+                self.medium_frame_increase_button.setEnabled(True)
             if not self.large_frame_increase_button.isEnabled():
                 self.large_frame_increase_button.setEnabled(True)
         if inactivate:
             if self.large_frame_decrease_button.isEnabled():
                 self.large_frame_decrease_button.setEnabled(False)
+            if self.medium_frame_decrease_button.isEnabled():
+                self.medium_frame_decrease_button.setEnabled(False)
             if self.small_frame_decrease_button.isEnabled():
                 self.small_frame_decrease_button.setEnabled(False)
             if self.small_frame_increase_button.isEnabled():
                 self.small_frame_increase_button.setEnabled(False)
+            if self.medium_frame_increase_button.isEnabled():
+                self.medium_frame_increase_button.setEnabled(False)
             if self.large_frame_increase_button.isEnabled():
                 self.large_frame_increase_button.setEnabled(False)
     def update_frame_window_slider_position(self):
@@ -1648,25 +1853,28 @@ class PlottingContent(QMainWindow):
         if activate:
             if not self.pause_video_button.isEnabled():
                 self.pause_video_button.setEnabled(True)
-            if not self.play_video_normal_speed_button.isEnabled():
-                self.play_video_normal_speed_button.setEnabled(True)
+            if not self.play_video_slow_speed_button.isEnabled():
+                self.play_video_slow_speed_button.setEnabled(True)
+            if not self.play_video_medium_speed_button.isEnabled():
+                self.play_video_medium_speed_button.setEnabled(True)
             if not self.play_video_max_speed_button.isEnabled():
                 self.play_video_max_speed_button.setEnabled(True)
         if inactivate:
             if self.pause_video_button.isEnabled():
                 self.pause_video_button.setEnabled(False)
-            if self.play_video_normal_speed_button.isEnabled():
-                self.play_video_normal_speed_button.setEnabled(False)
+            if self.play_video_slow_speed_button.isEnabled():
+                self.play_video_slow_speed_button.setEnabled(False)
+            if self.play_video_medium_speed_button.isEnabled():
+                self.play_video_medium_speed_button.setEnabled(False)
             if self.play_video_max_speed_button.isEnabled():
                 self.play_video_max_speed_button.setEnabled(False)
 
     def trigger_open_tracked_video(self):
-        self.video_path, _ = QFileDialog.getOpenFileName(self, "Open Video File", "","Video Files (*.avi)", options = QFileDialog.Options())
+        self.video_path, _ = QFileDialog.getOpenFileName(self, "Open Video File", "","Video Files (*.avi; *.mp4)", options = QFileDialog.Options())
         if self.video_path:
             self.get_video_attributes()
             success, self.frame = ut.load_frame_into_memory(self.video_path, self.frame_number - 1, convert_to_grayscale = False)
             if success and self.frame is not None:
-                self.play_video_normal_speed = False
                 self.update_preview_frame(self.frame, self.video_frame_width, self.video_frame_height)
                 self.update_preview_frame_window()
                 self.update_frame_window_slider(activate = True)
@@ -1700,21 +1908,49 @@ class PlottingContent(QMainWindow):
         self.update_tracking_video_time_textbox(inactivate = True)
         self.update_update_preview_button(inactivate = True)
         self.update_frame_change_buttons(inactivate = True)
+        self.update_video_playback_buttons(inactivate = True)
         self.update_frame_window_slider_position()
+        self.update_data_plot_window(clear = True)
     def trigger_pause_video(self):
-        if self.play_video_normal_speed:
-            self.play_video_normal_speed = False
-    def trigger_play_video_normal_speed(self):
-        # while self.play_video_normal_speed:
-        self.frame_number += 1
-        if self.frame_number <= self.video_n_frames:
-            self.trigger_update_preview()
-        else:
-            self.time_thread.stop()
-            self.frame_number = 1
-            self.trigger_update_preview()
-            self.time_thread.start()
-        # time.sleep(1)
+        if self.video_playback_thread:
+            self.video_playback_thread.close()
+        if self.play_video_slow_speed:
+            self.play_video_slow_speed = False
+        if self.play_video_max_speed:
+            self.play_video_max_speed = False
+    def trigger_play_video_slow_speed(self):
+        if self.play_video_slow_speed:
+            self.frame_number += 1
+            if self.frame_number <= self.video_n_frames:
+                self.trigger_update_preview()
+            else:
+                self.video_playback_thread.close()
+                self.frame_number = 1
+                self.trigger_update_preview()
+                self.video_playback_thread.start_thread = True
+                self.video_playback_thread.start()
+    def trigger_play_video_medium_speed(self):
+        if self.play_video_medium_speed:
+            self.frame_number += 10
+            if self.frame_number <= self.video_n_frames:
+                self.trigger_update_preview()
+            else:
+                self.video_playback_thread.close()
+                self.frame_number = 1
+                self.trigger_update_preview()
+                self.video_playback_thread.start_thread = True
+                self.video_playback_thread.start()
+    def trigger_play_video_max_speed(self):
+        if self.play_video_max_speed:
+            self.frame_number += 50
+            if self.frame_number <= self.video_n_frames:
+                self.trigger_update_preview()
+            else:
+                self.video_playback_thread.close()
+                self.frame_number = 1
+                self.trigger_update_preview()
+                self.video_playback_thread.start_thread = True
+                self.video_playback_thread.start()
 
     def check_tracking_video_time_textbox(self):
         try:
@@ -1737,6 +1973,11 @@ class PlottingContent(QMainWindow):
         if self.frame_number < 1:
             self.frame_number = 1
         self.trigger_update_preview()
+    def check_medium_frame_decrease_button(self):
+        self.frame_number -= 10
+        if self.frame_number < 1:
+            self.frame_number = 1
+        self.trigger_update_preview()
     def check_small_frame_decrease_button(self):
         self.frame_number -= 1
         if self.frame_number < 1:
@@ -1747,6 +1988,11 @@ class PlottingContent(QMainWindow):
         if self.frame_number > self.video_n_frames:
             self.frame_number = self.video_n_frames
         self.trigger_update_preview()
+    def check_medium_frame_increase_button(self):
+        self.frame_number += 10
+        if self.frame_number > self.video_n_frames:
+            self.frame_number = self.video_n_frames
+        self.trigger_update_preview()
     def check_large_frame_increase_button(self):
         self.frame_number += 100
         if self.frame_number > self.video_n_frames:
@@ -1754,13 +2000,43 @@ class PlottingContent(QMainWindow):
         self.trigger_update_preview()
     def check_pause_video_button(self):
         self.trigger_pause_video()
-    def check_play_video_normal_speed_button(self):
-        self.play_video_normal_speed = True
-        # self.trigger_play_video_normal_speed()
-        self.time_thread = VideoPlaybackThread()
-        self.time_thread.start()
-        self.time_thread.time_signal.connect(self.trigger_play_video_normal_speed)
-        # self.time_thread.time_signal.connect(self.trigger_play_video_normal_speed)
+    def check_play_video_slow_speed_button(self):
+        if not self.play_video_slow_speed:
+            if self.play_video_medium_speed:
+                self.play_video_medium_speed = False
+                self.video_playback_thread.close()
+            if self.play_video_max_speed:
+                self.play_video_max_speed = False
+                self.video_playback_thread.close()
+            self.video_playback_thread = VideoPlaybackThread()
+            self.video_playback_thread.start()
+            self.video_playback_thread.time_signal.connect(self.trigger_play_video_slow_speed)
+            self.play_video_slow_speed = True
+    def check_play_video_medium_speed_button(self):
+        if not self.play_video_medium_speed:
+            if self.play_video_slow_speed:
+                self.play_video_slow_speed = False
+                self.video_playback_thread.close()
+            if self.play_video_max_speed:
+                self.play_video_max_speed = False
+                self.video_playback_thread.close()
+            self.video_playback_thread = VideoPlaybackThread()
+            self.video_playback_thread.start()
+            self.video_playback_thread.time_signal.connect(self.trigger_play_video_medium_speed)
+            self.play_video_medium_speed = True
+    def check_play_video_max_speed_button(self):
+        if not self.play_video_max_speed:
+            if self.play_video_slow_speed:
+                self.play_video_slow_speed = False
+                self.video_playback_thread.close()
+            if self.play_video_medium_speed:
+                self.play_video_medium_speed = False
+                self.video_playback_thread.close()
+            self.video_playback_thread = VideoPlaybackThread()
+            self.video_playback_thread.video_fps = self.video_fps
+            self.video_playback_thread.start()
+            self.video_playback_thread.time_signal.connect(self.trigger_play_video_max_speed)
+            self.play_video_max_speed = True
 
 class DataPlot(QMainWindow):
 
@@ -1776,12 +2052,12 @@ class DataPlot(QMainWindow):
         layout = QVBoxLayout(self.data_plots)
 
         self.tail_angle_plot = FigureCanvas(Figure(figsize=(9, 5)))
+        self.tail_angle_plot_toolbar = NavigationToolbar(self.tail_angle_plot, self.tail_angle_plot)
         layout.addWidget(self.tail_angle_plot)
-        # self.addToolBar(NavigationToolbar(self.tail_angle_plot, self))
 
         self.heading_angle_plot = FigureCanvas(Figure(figsize=(9, 5)))
+        self.heading_angle_plot_toolbar = NavigationToolbar(self.heading_angle_plot, self.heading_angle_plot)
         layout.addWidget(self.heading_angle_plot)
-        # self.addToolBar(Qt.BottomToolBarArea, NavigationToolbar(self.heading_angle_plot, self))
 
     def initialize_class_variables(self, data):
         self.heading_angle_array = data['heading_angle_array']
@@ -1904,13 +2180,17 @@ class VideoPlaybackThread(QThread):
 
     def __init__(self):
         super(VideoPlaybackThread, self).__init__()
+        self.start_thread = True
+        # self.video_fps = 1
 
     def run(self):
-        while True:
-            time_now = time.clock()
-            print(time_now)
+        while self.start_thread:
+            time_now = time.perf_counter()
             self.time_signal.emit(time_now)
             time.sleep(0.1)
+
+    def close(self):
+        self.start_thread = False
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
