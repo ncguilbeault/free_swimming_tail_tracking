@@ -595,7 +595,10 @@ def track_tail_in_frame(tracking_params):
                     # Calculate the next set of tail coordinates.
                     tail_point_coords[m] = calculate_next_coords(tail_point_coords[m - 1], dist_tail_points, frame, angle = tail_angle)
                 tracking_results = np.array([np.array(first_eye_coords), np.array(second_eye_coords), first_eye_angle, second_eye_angle, np.array(heading_coords), np.array(body_coords), heading_angle, np.array(tail_point_coords)])
+                # if not np.isnan(np.hstack(tracking_results).any()):
                 return tracking_results
+                # else:
+                    # return None
             else:
                 return None
         else:

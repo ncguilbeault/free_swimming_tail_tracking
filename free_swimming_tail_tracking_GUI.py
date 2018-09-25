@@ -201,6 +201,8 @@ class TrackingContent(QMainWindow):
         self.colours = []
         self.save_video = False
         self.extended_eyes_calculation = False
+        self.tracking_video_thread = None
+        self.calculate_background_thread = None
 
     # Defining Get Functions
     def get_main_window_attributes(self):
@@ -1021,6 +1023,16 @@ class TrackingContent(QMainWindow):
             self.eyes_threshold_textbox.setText('{0}'.format(self.eyes_threshold))
         if self.eyes_line_length_textbox.isEnabled():
             self.eyes_line_length_textbox.setText('{0}'.format(self.eyes_line_length))
+        if self.save_tracked_video_combobox.isEnabled():
+            if self.save_video:
+                self.save_tracked_video_combobox.setCurrentIndex(0)
+            else:
+                self.save_tracked_video_combobox.setCurrentIndex(1)
+        if self.extended_eyes_calculation_combobox.isEnabled():
+            if self.extended_eyes_calculation:
+                self.extended_eyes_calculation_combobox.setCurrentIndex(0)
+            else:
+                self.extended_eyes_calculation_combobox.setCurrentIndex(1)
     def update_tracking_parameters_buttons(self, activate = False, inactivate = False):
         if activate:
             if not self.load_default_tracking_parameters_button.isEnabled():
@@ -1146,6 +1158,15 @@ class TrackingContent(QMainWindow):
                 if i < len(self.colours) - 3 :
                     self.colour_label_list[i].setText('Tail Point {0}: '.format(i + 1))
                 self.colour_textbox_list[i].setText('{0}'.format(self.colours[i]))
+    def update_background_from_thread(self):
+        self.background = self.calculate_background_thread.background
+        self.get_background_attributes()
+        self.update_descriptors()
+        self.update_preview_parameters(activate = True)
+        self.update_tracking_parameters(activate = True)
+        self.update_tracking_parameters_buttons(activate = True)
+        self.update_colour_parameters(activate = True)
+        self.update_colour_parameters_buttons(activate = True)
 
     # Defining Trigger Functions
     def trigger_save_background(self):
@@ -1162,16 +1183,20 @@ class TrackingContent(QMainWindow):
             self.get_background_attributes()
             self.update_descriptors()
     def trigger_calculate_background(self):
-        if self.video_path is not None:
-            self.background_path = 'Background calculated and loaded into memory/Background calculated and loaded into memory'
-            self.background = ut.calculate_background(self.video_path)[0]
-            self.get_background_attributes()
-            self.update_descriptors()
-            self.update_preview_parameters(activate = True)
-            self.update_tracking_parameters(activate = True)
-            self.update_tracking_parameters_buttons(activate = True)
-            self.update_colour_parameters(activate = True)
-            self.update_colour_parameters_buttons(activate = True)
+        if self.calculate_background_thread is None:
+            if self.video_path is not None:
+                self.background_path = 'Background calculated and loaded into memory/Background calculated and loaded into memory'
+                self.calculate_background_thread = CalculateBackgroundThread()
+                self.calculate_background_thread.video_path = self.video_path
+                self.calculate_background_thread.start()
+                self.calculate_background_thread.background_calculated_signal.connect(self.update_background_from_thread)
+        elif not self.calculate_background_thread.isRunning():
+            if self.video_path is not None:
+                self.background_path = 'Background calculated and loaded into memory/Background calculated and loaded into memory'
+                self.calculate_background_thread = CalculateBackgroundThread()
+                self.calculate_background_thread.video_path = self.video_path
+                self.calculate_background_thread.start()
+                self.calculate_background_thread.background_calculated_signal.connect(self.update_background_from_thread)
     def trigger_select_save_path(self):
         self.save_path = QFileDialog.getExistingDirectory(self, 'Select save path.')
         if self.save_path:
@@ -1307,25 +1332,46 @@ class TrackingContent(QMainWindow):
             'save_video' : self.save_video, 'extended_eyes_calculation' : self.extended_eyes_calculation}
         np.save('tracking_parameters.npy', tracking_parameters)
     def trigger_track_video(self):
-        self.track_video_thread = TrackVideoThread()
-        self.track_video_thread.video_path = self.video_path
-        self.track_video_thread.n_tail_points = self.n_tail_points
-        self.track_video_thread.dist_tail_points = self.dist_tail_points
-        self.track_video_thread.dist_eyes = self.dist_eyes
-        self.track_video_thread.dist_swim_bladder = self.dist_swim_bladder
-        self.track_video_thread.n_frames = self.n_frames
-        self.track_video_thread.starting_frame = self.starting_frame
-        self.track_video_thread.save_path = self.save_path
-        self.track_video_thread.background_path = self.background_path
-        self.track_video_thread.line_length = self.line_length
-        self.track_video_thread.video_fps = self.video_fps
-        self.track_video_thread.pixel_threshold = self.pixel_threshold
-        self.track_video_thread.frame_change_threshold = self.frame_change_threshold
-        self.track_video_thread.colours = [(self.colours[i][2], self.colours[i][1], self.colours[i][0]) for i in range(len(self.colours))]
-        self.track_video_thread.save_video = self.save_video
-        self.track_video_thread.extended_eyes_calculation = self.extended_eyes_calculation
-        self.track_video_thread.eyes_threshold = self.eyes_threshold
-        self.track_video_thread.start()
+        if self.tracking_video_thread is None:
+            self.track_video_thread = TrackVideoThread()
+            self.track_video_thread.video_path = self.video_path
+            self.track_video_thread.n_tail_points = self.n_tail_points
+            self.track_video_thread.dist_tail_points = self.dist_tail_points
+            self.track_video_thread.dist_eyes = self.dist_eyes
+            self.track_video_thread.dist_swim_bladder = self.dist_swim_bladder
+            self.track_video_thread.n_frames = self.n_frames
+            self.track_video_thread.starting_frame = self.starting_frame
+            self.track_video_thread.save_path = self.save_path
+            self.track_video_thread.background_path = self.background_path
+            self.track_video_thread.line_length = self.line_length
+            self.track_video_thread.video_fps = self.video_fps
+            self.track_video_thread.pixel_threshold = self.pixel_threshold
+            self.track_video_thread.frame_change_threshold = self.frame_change_threshold
+            self.track_video_thread.colours = [(self.colours[i][2], self.colours[i][1], self.colours[i][0]) for i in range(len(self.colours))]
+            self.track_video_thread.save_video = self.save_video
+            self.track_video_thread.extended_eyes_calculation = self.extended_eyes_calculation
+            self.track_video_thread.eyes_threshold = self.eyes_threshold
+            self.track_video_thread.start()
+        elif not self.track_video_thread.isRunning():
+            self.track_video_thread = TrackVideoThread()
+            self.track_video_thread.video_path = self.video_path
+            self.track_video_thread.n_tail_points = self.n_tail_points
+            self.track_video_thread.dist_tail_points = self.dist_tail_points
+            self.track_video_thread.dist_eyes = self.dist_eyes
+            self.track_video_thread.dist_swim_bladder = self.dist_swim_bladder
+            self.track_video_thread.n_frames = self.n_frames
+            self.track_video_thread.starting_frame = self.starting_frame
+            self.track_video_thread.save_path = self.save_path
+            self.track_video_thread.background_path = self.background_path
+            self.track_video_thread.line_length = self.line_length
+            self.track_video_thread.video_fps = self.video_fps
+            self.track_video_thread.pixel_threshold = self.pixel_threshold
+            self.track_video_thread.frame_change_threshold = self.frame_change_threshold
+            self.track_video_thread.colours = [(self.colours[i][2], self.colours[i][1], self.colours[i][0]) for i in range(len(self.colours))]
+            self.track_video_thread.save_video = self.save_video
+            self.track_video_thread.extended_eyes_calculation = self.extended_eyes_calculation
+            self.track_video_thread.eyes_threshold = self.eyes_threshold
+            self.track_video_thread.start()
     def trigger_unload_all_tracking(self):
         if self.preview_background_checkbox.isChecked():
             self.preview_background_checkbox.setChecked(False)
@@ -1370,11 +1416,13 @@ class TrackingContent(QMainWindow):
     def trigger_load_default_colours(self):
         self.colours = [[] for i in range(self.n_tail_points + 3)]
         colour_map = cm.gnuplot2
-        self.colours[-1] = (0, 255, 255)
+        self.colours[-1] = (0, 255, 0)
         self.colours[-2] = (255, 0, 127)
-        self.colours[-3] = (0, 255, 0)
+        self.colours[-3] = (0, 255, 255)
         for i in range(self.n_tail_points):
             colour = colour_map(i / (self.n_tail_points - 1))[:3]
+            if i == self.n_tail_points - 1:
+                colour = (1, 1, 0.5)
             self.colours[i] = (int(colour[0] * 255), int(colour[1] * 255), int(colour[2] * 255))
     def trigger_load_previous_colours(self):
         try:
@@ -1590,7 +1638,19 @@ class TrackVideoThread(QThread):
         if self.background_path == 'Background calculated and loaded into memory/Background calculated and loaded into memory':
             self.background_path = None
         ut.track_video(self.video_path, self.colours, self.n_tail_points, self.dist_tail_points, self.dist_eyes, self.dist_swim_bladder, save_video = self.save_video, extended_eyes_calculation = self.extended_eyes_calculation, n_frames = self.n_frames, starting_frame = self.starting_frame, save_path = self.save_path, background_path = self.background_path, line_length = self.line_length, video_fps = self.video_fps, pixel_threshold = self.pixel_threshold, frame_change_threshold = self.frame_change_threshold, eyes_threshold = self.eyes_threshold)
-        # ut.track_tail_in_video_without_multiprocessing(self.video_path, self.colours, self.n_tail_points, self.dist_tail_points, self.dist_eyes, self.dist_swim_bladder, init_frame_batch_size = 50, init_starting_frame = 0, save_path = self.save_path, background_path = self.background_path, line_length = self.line_length, video_fps = self.video_fps, n_frames = self.n_frames, pixel_threshold = self.pixel_threshold, frame_change_threshold = self.frame_change_threshold)
+
+class CalculateBackgroundThread(QThread):
+
+    background_calculated_signal = pyqtSignal(bool)
+
+    def __init__(self):
+        super(CalculateBackgroundThread, self).__init__()
+        self.video_path = None
+        self.background = None
+
+    def run(self):
+        self.background = ut.calculate_background(self.video_path)[0]
+        self.background_calculated_signal.emit(True)
 
 class PlottingWindow(QScrollArea):
 
@@ -1624,6 +1684,7 @@ class PlottingContent(QMainWindow):
         self.play_video_slow_speed = False
         self.play_video_medium_speed = False
         self.play_video_max_speed = False
+        self.data_plot = None
 
     def get_video_attributes(self):
         self.video_path_folder = os.path.dirname(self.video_path)
@@ -1783,8 +1844,10 @@ class PlottingContent(QMainWindow):
         if not clear:
             self.data_plot_window.setWidget(self.data_plot)
         else:
-            self.data_plot.deleteLater()
-            self.data_plot.setGeometry(0, 0, 0, 0)
+            if self.data_plot is not None:
+                self.data_plot.deleteLater()
+                self.data_plot.setGeometry(0, 0, 0, 0)
+                self.data_plot = None
     def update_frame_window_slider(self, activate = False, inactivate = False):
         if activate:
             if not self.frame_window_slider.isEnabled():
@@ -2045,8 +2108,6 @@ class DataPlot(QMainWindow):
         self.initUI()
 
     def initUI(self):
-        # self.initialize_class_variables()
-
         self.data_plots = QWidget()
         self.setCentralWidget(self.data_plots)
         layout = QVBoxLayout(self.data_plots)
@@ -2059,6 +2120,9 @@ class DataPlot(QMainWindow):
         self.heading_angle_plot_toolbar = NavigationToolbar(self.heading_angle_plot, self.heading_angle_plot)
         layout.addWidget(self.heading_angle_plot)
 
+        self.eye_angles_plot = FigureCanvas(Figure(figsize=(9, 5)))
+        self.eye_angles_plot_toolbar = NavigationToolbar(self.eye_angles_plot, self.eye_angles_plot)
+        layout.addWidget(self.eye_angles_plot)
     def initialize_class_variables(self, data):
         self.heading_angle_array = data['heading_angle_array']
         self.tail_coord_array = data['tail_coord_array']
@@ -2171,8 +2235,11 @@ class DataPlot(QMainWindow):
         self.heading_angle_plot_axis.set_ylabel('Angle (radians)')
         self.heading_angle_plot_axis.set_title('Heading Angle Over Time')
 
-        # xlim_start = -100/video_fps
-        # xlim_end = 100/video_fps
+        self.eye_angles_plot_axis = self.eye_angles_plot.figure.subplots()
+        [self.eye_angles_plot_axis.plot(self.timepoints, self.smoothed_eye_angles[i], color = self.colours[i - 3], lw = 1) for i in range(len(self.smoothed_eye_angles))]
+        self.eye_angles_plot_axis.set_xlabel('Time (s)')
+        self.eye_angles_plot_axis.set_ylabel('Angle (radians)')
+        self.eye_angles_plot_axis.set_title('Eye Angles Over Time')
 
 class VideoPlaybackThread(QThread):
 
@@ -2181,7 +2248,6 @@ class VideoPlaybackThread(QThread):
     def __init__(self):
         super(VideoPlaybackThread, self).__init__()
         self.start_thread = True
-        # self.video_fps = 1
 
     def run(self):
         while self.start_thread:
