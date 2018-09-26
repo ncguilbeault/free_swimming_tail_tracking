@@ -164,8 +164,19 @@ class TrackingContent(QMainWindow):
         self.resize((2550 / 2560) * self.main_window_width, (1320 / 1400) * self.main_window_height)
         self.show()
     def initialize_layout(self):
-        self.main_window_x_offset = 5
-        self.main_window_y_offset = 25
+        self.font_title = QFont()
+        self.font_text = QFont()
+
+        if self.main_window_width > 1920:
+            self.font_title.setPointSize(18)
+            self.font_text.setPointSize(10)
+
+        else:
+            self.font_title.setPointSize(14)
+            self.font_text.setPointSize(8)
+
+        self.main_window_x_offset = 10
+        self.main_window_y_offset = 15
         self.main_window_spacing = 10
         self.preview_frame_window_size = (1000, 1000)
         self.descriptors_window_size = (500, 1000)
@@ -174,14 +185,22 @@ class TrackingContent(QMainWindow):
         self.descriptors_height = 20
         self.preview_frame_window_slider_height = 20
         self.preview_frame_number_textbox_y_spacing = 10
-        self.preview_frame_number_textbox_label_size = (145, 25)
-        self.preview_frame_number_textbox_size = (100, 25)
+        self.preview_frame_number_textbox_label_size = (200, 25)
+        self.preview_frame_number_textbox_size = (120, 25)
         self.update_preview_button_y_spacing = 5
         self.update_preview_button_height = 50
         self.frame_change_button_size = (80, 80)
         self.frame_change_button_x_offset = 10
         self.frame_change_button_x_spacing = 5
         self.frame_change_button_icon_size = (76, 76)
+        self.preview_parameters_window_size = (500, 330)
+        self.preview_parameters_x_offset = 10
+        self.preview_parameters_y_offset = 75
+        self.preview_parameters_height = 20
+        self.preview_parameters_x_spacing = 20
+        self.preview_parameters_y_spacing = 3
+        self.preview_parameters_checkbox_size = (15, 15)
+
     def initialize_class_variables(self):
         self.video_path = None
         self.video_path_basename = None
@@ -280,8 +299,6 @@ class TrackingContent(QMainWindow):
         new_width = (self.preview_frame_window_size[0] / 2560) * self.main_window_width
         new_height = (self.preview_frame_window_size[1] / 1400) * self.main_window_height
 
-        font = QFont()
-        font.setPointSize(18)
         self.preview_frame_window = QLabel(self)
         self.preview_frame_window.setFrameShape(QFrame.Panel)
         self.preview_frame_window.setFrameShadow(QFrame.Sunken)
@@ -290,15 +307,13 @@ class TrackingContent(QMainWindow):
         self.preview_frame_window.resize(new_width, new_height)
         self.preview_frame_window.setText('Preview Frame Window')
         self.preview_frame_window.setAlignment(Qt.AlignHCenter | Qt.AlignTop)
-        self.preview_frame_window.setFont(font)
+        self.preview_frame_window.setFont(self.font_title)
     def add_descriptors_window(self):
         new_x = ((self.main_window_x_offset + self.preview_frame_window_size[0] + self.main_window_spacing) / 2560) * self.main_window_width
         new_y = (self.main_window_y_offset / 1400) * self.main_window_height
         new_width = (self.descriptors_window_size[0] / 2560) * self.main_window_width
         new_height = (self.descriptors_window_size[1] / 1400) * self.main_window_height
 
-        font = QFont()
-        font.setPointSize(18)
         self.descriptors_window = QLabel(self)
         self.descriptors_window.setFrameShape(QFrame.Panel)
         self.descriptors_window.setFrameShadow(QFrame.Sunken)
@@ -307,21 +322,19 @@ class TrackingContent(QMainWindow):
         self.descriptors_window.resize(new_width, new_height)
         self.descriptors_window.setText('Descriptors')
         self.descriptors_window.setAlignment(Qt.AlignHCenter | Qt.AlignTop)
-        self.descriptors_window.setFont(font)
+        self.descriptors_window.setFont(self.font_title)
     def add_descriptors_to_window(self):
         new_x = ((self.main_window_x_offset + self.preview_frame_window_size[0] + self.main_window_spacing + self.descriptors_x_offset) / 2560) * self.main_window_width
-        new_width = ((self.preview_frame_window_size[0] - (2 * self.descriptors_x_offset)) / 2560) * self.main_window_width
+        new_width = ((self.descriptors_window_size[0] - (2 * self.descriptors_x_offset)) / 2560) * self.main_window_width
         new_height = (self.descriptors_height / 1400) * self.main_window_height
 
-        font = QFont()
-        font.setPointSize(10)
         self.video_path_folder_descriptor = QLabel(self)
         new_y = ((self.main_window_y_offset + self.descriptors_y_offset + (0 * 2 * self.descriptors_height)) / 1400) * self.main_window_height
         self.video_path_folder_descriptor.move(new_x, new_y)
         self.video_path_folder_descriptor.resize(new_width, new_height)
         self.video_path_folder_descriptor.setText('Video Folder: {0}'.format(self.video_path_folder))
         self.video_path_folder_descriptor.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
-        self.video_path_folder_descriptor.setFont(font)
+        self.video_path_folder_descriptor.setFont(self.font_text)
 
         self.video_path_basename_descriptor = QLabel(self)
         new_y = ((self.main_window_y_offset + self.descriptors_y_offset + (1 * 2 * self.descriptors_height)) / 1400) * self.main_window_height
@@ -329,7 +342,7 @@ class TrackingContent(QMainWindow):
         self.video_path_basename_descriptor.resize(new_width, new_height)
         self.video_path_basename_descriptor.setText('Video Filename: {0}'.format(self.video_path_basename))
         self.video_path_basename_descriptor.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
-        self.video_path_basename_descriptor.setFont(font)
+        self.video_path_basename_descriptor.setFont(self.font_text)
 
         self.video_n_frames_descriptor = QLabel(self)
         new_y = ((self.main_window_y_offset + self.descriptors_y_offset + (2 * 2 * self.descriptors_height)) / 1400) * self.main_window_height
@@ -337,7 +350,7 @@ class TrackingContent(QMainWindow):
         self.video_n_frames_descriptor.resize(new_width, new_height)
         self.video_n_frames_descriptor.setText('Video Total Frames: {0}'.format(self.video_n_frames))
         self.video_n_frames_descriptor.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
-        self.video_n_frames_descriptor.setFont(font)
+        self.video_n_frames_descriptor.setFont(self.font_text)
 
         self.video_fps_descriptor = QLabel(self)
         new_y = ((self.main_window_y_offset + self.descriptors_y_offset + (3 * 2 * self.descriptors_height)) / 1400) * self.main_window_height
@@ -345,7 +358,7 @@ class TrackingContent(QMainWindow):
         self.video_fps_descriptor.resize(new_width, new_height)
         self.video_fps_descriptor.setText('Video FPS: {0}'.format(self.video_fps))
         self.video_fps_descriptor.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
-        self.video_fps_descriptor.setFont(font)
+        self.video_fps_descriptor.setFont(self.font_text)
 
         self.video_format_descriptor = QLabel(self)
         new_y = ((self.main_window_y_offset + self.descriptors_y_offset + (4 * 2 * self.descriptors_height)) / 1400) * self.main_window_height
@@ -353,7 +366,7 @@ class TrackingContent(QMainWindow):
         self.video_format_descriptor.resize(new_width, new_height)
         self.video_format_descriptor.setText('Video Format: {0}'.format(self.video_format))
         self.video_format_descriptor.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
-        self.video_format_descriptor.setFont(font)
+        self.video_format_descriptor.setFont(self.font_text)
 
         self.frame_width_descriptor = QLabel(self)
         new_y = ((self.main_window_y_offset + self.descriptors_y_offset + (5 * 2 * self.descriptors_height)) / 1400) * self.main_window_height
@@ -361,7 +374,7 @@ class TrackingContent(QMainWindow):
         self.frame_width_descriptor.resize(new_width, new_height)
         self.frame_width_descriptor.setText('Frame Width: {0}'.format(self.video_frame_width))
         self.frame_width_descriptor.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
-        self.frame_width_descriptor.setFont(font)
+        self.frame_width_descriptor.setFont(self.font_text)
 
         self.frame_height_descriptor = QLabel(self)
         new_y = ((self.main_window_y_offset + self.descriptors_y_offset + (6 * 2 * self.descriptors_height)) / 1400) * self.main_window_height
@@ -369,7 +382,7 @@ class TrackingContent(QMainWindow):
         self.frame_height_descriptor.resize(new_width, new_height)
         self.frame_height_descriptor.setText('Frame Height: {0}'.format(self.video_frame_height))
         self.frame_height_descriptor.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
-        self.frame_height_descriptor.setFont(font)
+        self.frame_height_descriptor.setFont(self.font_text)
 
         self.background_path_folder_descriptor = QLabel(self)
         new_y = ((self.main_window_y_offset + self.descriptors_y_offset + (7 * 2 * self.descriptors_height)) / 1400) * self.main_window_height
@@ -377,7 +390,7 @@ class TrackingContent(QMainWindow):
         self.background_path_folder_descriptor.resize(new_width, new_height)
         self.background_path_folder_descriptor.setText('Background Folder: {0}'.format(self.background_path_folder))
         self.background_path_folder_descriptor.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
-        self.background_path_folder_descriptor.setFont(font)
+        self.background_path_folder_descriptor.setFont(self.font_text)
 
         self.background_path_basename_descriptor = QLabel(self)
         new_y = ((self.main_window_y_offset + self.descriptors_y_offset + (8 * 2 * self.descriptors_height)) / 1400) * self.main_window_height
@@ -385,7 +398,7 @@ class TrackingContent(QMainWindow):
         self.background_path_basename_descriptor.resize(new_width, new_height)
         self.background_path_basename_descriptor.setText('Background Filename: {0}'.format(self.background_path_basename))
         self.background_path_basename_descriptor.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
-        self.background_path_basename_descriptor.setFont(font)
+        self.background_path_basename_descriptor.setFont(self.font_text)
 
         self.save_path_descriptor = QLabel(self)
         new_y = ((self.main_window_y_offset + self.descriptors_y_offset + (9 * 2 * self.descriptors_height)) / 1400) * self.main_window_height
@@ -393,7 +406,7 @@ class TrackingContent(QMainWindow):
         self.save_path_descriptor.resize(new_width, new_height)
         self.save_path_descriptor.setText('Save Path: {0}'.format(self.save_path))
         self.save_path_descriptor.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
-        self.save_path_descriptor.setFont(font)
+        self.save_path_descriptor.setFont(self.font_text)
     def add_frame_window_slider(self):
         new_x = (self.main_window_x_offset / 2560) * self.main_window_width
         new_y = ((self.main_window_y_offset + self.preview_frame_window_size[1] + self.main_window_spacing) / 1400) * self.main_window_height
@@ -412,8 +425,6 @@ class TrackingContent(QMainWindow):
     def add_preview_frame_number_textbox(self):
         new_y = ((self.main_window_y_offset + self.preview_frame_window_size[1] + self.main_window_spacing + self.preview_frame_window_slider_height + self.preview_frame_number_textbox_y_spacing) / 1400) * self.main_window_height
 
-        font = QFont()
-        font.setPointSize(10)
         self.preview_frame_number_textbox_label = QLabel(self)
         new_x = (self.main_window_x_offset / 2560) * self.main_window_width
         self.preview_frame_number_textbox_label.move(new_x, new_y)
@@ -422,7 +433,7 @@ class TrackingContent(QMainWindow):
         self.preview_frame_number_textbox_label.resize(new_width, new_height)
         self.preview_frame_number_textbox_label.setText('Frame Number: ')
         self.preview_frame_number_textbox_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        self.preview_frame_number_textbox_label.setFont(font)
+        self.preview_frame_number_textbox_label.setFont(self.font_text)
         self.preview_frame_number_textbox = QLineEdit(self)
         new_x = ((self.main_window_x_offset + self.preview_frame_number_textbox_label_size[0]) / 2560) * self.main_window_width
         self.preview_frame_number_textbox.move(new_x, new_y)
@@ -430,12 +441,10 @@ class TrackingContent(QMainWindow):
         new_height = (self.preview_frame_number_textbox_size[1] / 1400) * self.main_window_height
         self.preview_frame_number_textbox.resize(new_width, new_height)
         self.preview_frame_number_textbox.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
-        self.preview_frame_number_textbox.setFont(font)
+        self.preview_frame_number_textbox.setFont(self.font_text)
         self.preview_frame_number_textbox.returnPressed.connect(self.check_preview_frame_number_textbox)
         self.update_preview_frame_number_textbox(inactivate = True)
     def add_update_preview_button(self):
-        font = QFont()
-        font.setPointSize(10)
         self.update_preview_button = QPushButton('Update Preview', self)
         new_x = (self.main_window_x_offset / 2560) * self.main_window_width
         new_y = ((self.main_window_y_offset + self.preview_frame_window_size[1] + self.main_window_spacing + self.preview_frame_window_slider_height + self.preview_frame_number_textbox_y_spacing + self.preview_frame_number_textbox_label_size[1] + self.update_preview_button_y_spacing) / 1400) * self.main_window_height
@@ -443,91 +452,100 @@ class TrackingContent(QMainWindow):
         new_width = ((self.preview_frame_number_textbox_label_size[0] + self.preview_frame_number_textbox_size[0]) / 2560) * self.main_window_width
         new_height = (self.update_preview_button_height / 1400) * self.main_window_height
         self.update_preview_button.resize(new_width, new_height)
-        self.update_preview_button.setFont(font)
+        self.update_preview_button.setFont(self.font_text)
         self.update_preview_button.clicked.connect(self.check_preview_frame_number_textbox)
         self.update_update_preview_button(inactivate = True)
     def add_frame_change_buttons(self):
-        new_frame_change_button_icon_width = (self.frame_change_button_icon_size[0] / 2560) * self.main_window_width
-        new_frame_change_button_icon_height = (self.frame_change_button_icon_size[1] / 1400) * self.main_window_height
-        new_frame_change_button_y = ((self.main_window_y_offset + self.preview_frame_window_size[1] + self.main_window_spacing + self.preview_frame_window_slider_height + self.preview_frame_number_textbox_y_spacing) / 1400) * self.main_window_height
-        new_frame_change_button_width = (self.frame_change_button_size[0] / 2560) * self.main_window_width
-        new_frame_change_button_height = (self.frame_change_button_size[1] / 1400) * self.main_window_height
+        new_icon_width = ((self.frame_change_button_size[0] / 2560) * self.main_window_width) - (self.frame_change_button_size[0] - self.frame_change_button_icon_size[0])
+        new_icon_height = ((self.frame_change_button_size[1] / 1400) * self.main_window_height) - (self.frame_change_button_size[1] - self.frame_change_button_icon_size[1])
+        new_y = ((self.main_window_y_offset + self.preview_frame_window_size[1] + self.main_window_spacing + self.preview_frame_window_slider_height + self.preview_frame_number_textbox_y_spacing) / 1400) * self.main_window_height
+        new_width = (self.frame_change_button_size[0] / 2560) * self.main_window_width
+        new_height = (self.frame_change_button_size[1] / 1400) * self.main_window_height
 
         self.large_frame_decrease_button = QPushButton(self)
         self.large_frame_decrease_button.setIcon(QIcon('button_icon_1.png'))
-        self.large_frame_decrease_button.setIconSize(QSize(new_frame_change_button_icon_width, new_frame_change_button_icon_height))
+        self.large_frame_decrease_button.setIconSize(QSize(new_icon_width, new_icon_height))
         new_x = ((self.main_window_x_offset + self.preview_frame_number_textbox_label_size[0] + self.preview_frame_number_textbox_size[0] + self.frame_change_button_x_offset + (0 * (self.frame_change_button_x_spacing + self.frame_change_button_size[0]))) / 2560) * self.main_window_width
-        self.large_frame_decrease_button.move(new_x, new_frame_change_button_y)
-        self.large_frame_decrease_button.resize(new_frame_change_button_width, new_frame_change_button_height)
+        self.large_frame_decrease_button.move(new_x, new_y)
+        self.large_frame_decrease_button.resize(new_width, new_height)
         self.large_frame_decrease_button.clicked.connect(self.check_large_frame_decrease_button)
 
         self.medium_frame_decrease_button = QPushButton(self)
         self.medium_frame_decrease_button.setIcon(QIcon('button_icon_2.png'))
-        self.medium_frame_decrease_button.setIconSize(QSize(new_frame_change_button_icon_width, new_frame_change_button_icon_height))
+        self.medium_frame_decrease_button.setIconSize(QSize(new_icon_width, new_icon_height))
         new_x = ((self.main_window_x_offset + self.preview_frame_number_textbox_label_size[0] + self.preview_frame_number_textbox_size[0] + self.frame_change_button_x_offset + (1 * (self.frame_change_button_x_spacing + self.frame_change_button_size[0]))) / 2560) * self.main_window_width
-        self.medium_frame_decrease_button.move(new_x, new_frame_change_button_y)
-        self.medium_frame_decrease_button.resize(new_frame_change_button_width, new_frame_change_button_height)
+        self.medium_frame_decrease_button.move(new_x, new_y)
+        self.medium_frame_decrease_button.resize(new_width, new_height)
         self.medium_frame_decrease_button.clicked.connect(self.check_medium_frame_decrease_button)
 
         self.small_frame_decrease_button = QPushButton(self)
         self.small_frame_decrease_button.setIcon(QIcon('button_icon_3.png'))
-        self.small_frame_decrease_button.setIconSize(QSize(new_frame_change_button_icon_width, new_frame_change_button_icon_height))
+        self.small_frame_decrease_button.setIconSize(QSize(new_icon_width, new_icon_height))
         new_x = ((self.main_window_x_offset + self.preview_frame_number_textbox_label_size[0] + self.preview_frame_number_textbox_size[0] + self.frame_change_button_x_offset + (2 * (self.frame_change_button_x_spacing + self.frame_change_button_size[0]))) / 2560) * self.main_window_width
-        self.small_frame_decrease_button.move(new_x, new_frame_change_button_y)
-        self.small_frame_decrease_button.resize(new_frame_change_button_width, new_frame_change_button_height)
+        self.small_frame_decrease_button.move(new_x, new_y)
+        self.small_frame_decrease_button.resize(new_width, new_height)
         self.small_frame_decrease_button.clicked.connect(self.check_small_frame_decrease_button)
 
         self.small_frame_increase_button = QPushButton(self)
         self.small_frame_increase_button.setIcon(QIcon('button_icon_4.png'))
-        self.small_frame_increase_button.setIconSize(QSize(new_frame_change_button_icon_width, new_frame_change_button_icon_height))
+        self.small_frame_increase_button.setIconSize(QSize(new_icon_width, new_icon_height))
         new_x = ((self.main_window_x_offset + self.preview_frame_number_textbox_label_size[0] + self.preview_frame_number_textbox_size[0] + self.frame_change_button_x_offset + (3 * (self.frame_change_button_x_spacing + self.frame_change_button_size[0]))) / 2560) * self.main_window_width
-        self.small_frame_increase_button.move(new_x, new_frame_change_button_y)
-        self.small_frame_increase_button.resize(new_frame_change_button_width, new_frame_change_button_height)
+        self.small_frame_increase_button.move(new_x, new_y)
+        self.small_frame_increase_button.resize(new_width, new_height)
         self.small_frame_increase_button.clicked.connect(self.check_small_frame_increase_button)
 
         self.medium_frame_increase_button = QPushButton(self)
         self.medium_frame_increase_button.setIcon(QIcon('button_icon_5.png'))
-        self.medium_frame_increase_button.setIconSize(QSize(new_frame_change_button_icon_width, new_frame_change_button_icon_height))
+        self.medium_frame_increase_button.setIconSize(QSize(new_icon_width, new_icon_height))
         new_x = ((self.main_window_x_offset + self.preview_frame_number_textbox_label_size[0] + self.preview_frame_number_textbox_size[0] + self.frame_change_button_x_offset + (4 * (self.frame_change_button_x_spacing + self.frame_change_button_size[0]))) / 2560) * self.main_window_width
-        self.medium_frame_increase_button.move(new_x, new_frame_change_button_y)
-        self.medium_frame_increase_button.resize(new_frame_change_button_width, new_frame_change_button_height)
+        self.medium_frame_increase_button.move(new_x, new_y)
+        self.medium_frame_increase_button.resize(new_width, new_height)
         self.medium_frame_increase_button.clicked.connect(self.check_medium_frame_increase_button)
 
         self.large_frame_increase_button = QPushButton(self)
         self.large_frame_increase_button.setIcon(QIcon('button_icon_6.png'))
-        self.large_frame_increase_button.setIconSize(QSize(new_frame_change_button_icon_width, new_frame_change_button_icon_height))
+        self.large_frame_increase_button.setIconSize(QSize(new_icon_width, new_icon_height))
         new_x = ((self.main_window_x_offset + self.preview_frame_number_textbox_label_size[0] + self.preview_frame_number_textbox_size[0] + self.frame_change_button_x_offset + (5 * (self.frame_change_button_x_spacing + self.frame_change_button_size[0]))) / 2560) * self.main_window_width
-        self.large_frame_increase_button.move(new_x, new_frame_change_button_y)
-        self.large_frame_increase_button.resize(new_frame_change_button_width, new_frame_change_button_height)
+        self.large_frame_increase_button.move(new_x, new_y)
+        self.large_frame_increase_button.resize(new_width, new_height)
         self.large_frame_increase_button.clicked.connect(self.check_large_frame_increase_button)
         self.update_frame_change_buttons(inactivate = True)
     def add_preview_parameters_window(self):
-        font = QFont()
-        font.setPointSize(18)
+        new_x = ((self.main_window_x_offset + self.preview_frame_window_size[0] + self.main_window_spacing) / 2560) * self.main_window_width
+        new_y = ((self.main_window_y_offset + self.preview_frame_window_size[1] + self.main_window_spacing) / 1400) * self.main_window_height
+        new_width = (self.preview_parameters_window_size[0] / 2560) * self.main_window_width
+        new_height = (self.preview_parameters_window_size[1] / 1400) * self.main_window_height
+
         self.preview_parameters_window = QLabel(self)
         self.preview_parameters_window.setFrameShape(QFrame.Panel)
         self.preview_parameters_window.setFrameShadow(QFrame.Sunken)
         self.preview_parameters_window.setLineWidth(5)
-        new_x = ((self.main_window_x_offset + self.preview_frame_window_size[0] + self.main_window_spacing) / 2560) * self.main_window_width
-        new_y = ((self.main_window_y_offset + self.preview_frame_window_size[1] + self.main_window_spacing) / 1400) * self.main_window_height
         self.preview_parameters_window.move(new_x, new_y)
-        self.preview_parameters_window.resize(500, 330)
+        self.preview_parameters_window.resize(new_width, new_height)
         self.preview_parameters_window.setText('Preview Parameters')
         self.preview_parameters_window.setAlignment(Qt.AlignHCenter | Qt.AlignTop)
-        self.preview_parameters_window.setFont(font)
+        self.preview_parameters_window.setFont(self.font_title)
     def add_preview_parameters_to_window(self):
-        font = QFont()
-        font.setPointSize(10)
+        new_x = ((self.main_window_x_offset + self.preview_frame_window_size[0] + self.main_window_spacing + self.preview_parameters_x_offset) / 2560) * self.main_window_width
+        new_width = (self.preview_parameters_checkbox_size[0] / 2560) * self.main_window_width
+        new_height = (self.preview_parameters_checkbox_size[1] / 1400) * self.main_window_height
+        new_label_width = ((self.preview_parameters_window_size[0] - (2 * self.preview_parameters_x_offset)) / 2560) * self.main_window_width
+        new_label_height = (self.preview_parameters_height / 1400) * self.main_window_height
+        new_label_x = ((self.main_window_x_offset + self.preview_frame_window_size[0] + self.main_window_spacing + self.preview_parameters_x_offset + self.preview_parameters_x_spacing) / 2560) * self.main_window_width
+
         self.preview_background_checkbox = QCheckBox(self)
-        self.preview_background_checkbox.move(1025, 1110)
-        self.preview_background_checkbox.setEnabled(False)
+        new_y = ((self.main_window_y_offset + self.preview_frame_window_size[1] + self.main_window_spacing + self.preview_parameters_y_offset + (0 * 2 * self.preview_parameters_height)) / 1400) * self.main_window_height
+        self.preview_background_checkbox.move(new_x, new_y)
+        self.preview_background_checkbox.resize(new_width, new_height)
         self.preview_background_checkbox.stateChanged.connect(self.check_preview_background_checkbox)
         self.preview_background_checkbox_label = QLabel(self)
-        self.preview_background_checkbox_label.move(1045, 1113)
-        self.preview_background_checkbox_label.resize(500, 20)
+        # new_label_y = new_y + self.preview_parameters_y_spacing
+        new_label_y = ((self.main_window_y_offset + self.preview_frame_window_size[1] + self.main_window_spacing + self.preview_parameters_y_offset + self.preview_parameters_y_spacing + (0 * 2 * self.preview_parameters_height)) / 1400) * self.main_window_height
+        self.preview_background_checkbox_label.move(new_label_x, new_label_y)
+        self.preview_background_checkbox_label.resize(new_label_width, new_label_height)
         self.preview_background_checkbox_label.setText('Preview Background')
         self.preview_background_checkbox_label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
-        self.preview_background_checkbox_label.setFont(font)
+        self.preview_background_checkbox_label.setFont(self.font_text)
 
         self.preview_background_subtracted_frame_checkbox = QCheckBox(self)
         self.preview_background_subtracted_frame_checkbox.move(1025, 1150)
@@ -537,40 +555,27 @@ class TrackingContent(QMainWindow):
         self.preview_background_subtracted_frame_checkbox_label.resize(500, 20)
         self.preview_background_subtracted_frame_checkbox_label.setText('Preview Background Subtracted Frames')
         self.preview_background_subtracted_frame_checkbox_label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
-        self.preview_background_subtracted_frame_checkbox_label.setFont(font)
+        self.preview_background_subtracted_frame_checkbox_label.setFont(self.font_text)
 
         self.preview_tracking_results_checkbox = QCheckBox(self)
         self.preview_tracking_results_checkbox.move(1025, 1190)
         self.preview_tracking_results_checkbox.stateChanged.connect(self.check_preview_tracking_results_checkbox)
-        self.preview_tracking_results_checkbox.setEnabled(False)
         self.preview_tracking_results_checkbox_label = QLabel(self)
         self.preview_tracking_results_checkbox_label.move(1045, 1193)
         self.preview_tracking_results_checkbox_label.resize(500, 20)
         self.preview_tracking_results_checkbox_label.setText('Preview Tracking Results')
         self.preview_tracking_results_checkbox_label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
-        self.preview_tracking_results_checkbox_label.setFont(font)
-
-        # self.preview_extended_eyes_calculation_checkbox = QCheckBox(self)
-        # self.preview_extended_eyes_calculation_checkbox.move(1025, 1230)
-        # self.preview_extended_eyes_calculation_checkbox.stateChanged.connect(self.check_preview_extended_eyes_calculation_checkbox)
-        # self.preview_extended_eyes_calculation_checkbox.setEnabled(False)
-        # self.preview_extended_eyes_calculation_checkbox_label = QLabel(self)
-        # self.preview_extended_eyes_calculation_checkbox_label.move(1045, 1233)
-        # self.preview_extended_eyes_calculation_checkbox_label.resize(500, 20)
-        # self.preview_extended_eyes_calculation_checkbox_label.setText('Preview Extended Eyes Calculation')
-        # self.preview_extended_eyes_calculation_checkbox_label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
-        # self.preview_extended_eyes_calculation_checkbox_label.setFont(font)
+        self.preview_tracking_results_checkbox_label.setFont(self.font_text)
 
         self.preview_eyes_threshold_checkbox = QCheckBox(self)
         self.preview_eyes_threshold_checkbox.move(1025, 1230)
         self.preview_eyes_threshold_checkbox.stateChanged.connect(self.check_preview_eyes_threshold_checkbox)
-        self.preview_eyes_threshold_checkbox.setEnabled(False)
         self.preview_eyes_threshold_checkbox_label = QLabel(self)
         self.preview_eyes_threshold_checkbox_label.move(1045, 1233)
         self.preview_eyes_threshold_checkbox_label.resize(500, 20)
         self.preview_eyes_threshold_checkbox_label.setText('Preview Eyes Threshold')
         self.preview_eyes_threshold_checkbox_label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
-        self.preview_eyes_threshold_checkbox_label.setFont(font)
+        self.preview_eyes_threshold_checkbox_label.setFont(self.font_text)
         self.update_preview_parameters(inactivate = True)
     def add_tracking_parameters_window(self):
         font = QFont()
