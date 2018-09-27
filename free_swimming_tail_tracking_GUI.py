@@ -207,7 +207,7 @@ class TrackingContent(QMainWindow):
             self.tracking_parameters_y_spacing = 10
             self.tracking_parameters_button_size = (500, 50)
             self.colour_parameters_window_size = (995, 330)
-            self.colour_parameters_button_size = (220, 70)
+            self.colour_parameters_button_size = (220, 60)
             self.colour_parameters_x_offset = 0
             self.colour_parameters_y_offset = 80
             self.colour_parameters_height = 30
@@ -217,7 +217,7 @@ class TrackingContent(QMainWindow):
             self.colour_parameters_width = 200
             self.colour_parameters_x_spacing = 20
             self.colour_parameters_y_spacing = 10
-            self.colour_parameters_button_y_spacing = 15
+            self.colour_parameters_button_y_spacing = 20
             self.colour_select_button_x_spacing = 0
             self.colour_parameters_button_x_offset = 10
         else:
@@ -367,8 +367,6 @@ class TrackingContent(QMainWindow):
     def add_preview_frame_window(self):
         new_x = (self.main_window_x_offset / 2560) * self.main_window_width
         new_y = (self.main_window_y_offset / 1400) * self.main_window_height
-        # new_width = (self.preview_frame_window_size[0] / 2560) * self.main_window_width
-        # new_height = (self.preview_frame_window_size[1] / 1400) * self.main_window_height
 
         self.preview_frame_window = QLabel(self)
         self.preview_frame_window.setFrameShape(QFrame.Panel)
@@ -481,13 +479,12 @@ class TrackingContent(QMainWindow):
     def add_frame_window_slider(self):
         new_x = (self.main_window_x_offset / 2560) * self.main_window_width
         new_y = self.preview_frame_window_size[1] + ((self.main_window_y_offset + self.main_window_spacing) / 1400) * self.main_window_height
-        new_width = (self.preview_frame_window_size[0] / 2560) * self.main_window_width
         new_height = (self.preview_frame_window_slider_height / 1400) * self.main_window_height
 
         self.frame_window_slider = QSlider(Qt.Horizontal, self)
         self.frame_window_slider.setToolTip('Move slider to change preview frame number.')
         self.frame_window_slider.move(new_x, new_y)
-        self.frame_window_slider.resize(new_width, new_height)
+        self.frame_window_slider.resize(self.preview_frame_window_size[0], new_height)
         self.frame_window_slider.setEnabled(False)
         self.frame_window_slider.setTickInterval(0)
         self.frame_window_slider.setSingleStep(0)
