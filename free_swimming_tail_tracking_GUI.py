@@ -191,12 +191,12 @@ class TrackingContent(QMainWindow):
             self.preview_frame_number_textbox_size = (120, 25)
             self.update_preview_button_y_spacing = 5
             self.update_preview_button_height = 50
-            self.frame_change_button_size = (80, 80)
+            self.frame_change_button_size = (50, 50)
             self.frame_change_button_x_offset = 10
             self.frame_change_button_x_spacing = 5
-            self.frame_change_button_icon_size = (76, 76)
+            self.frame_change_button_icon_size = (60, 60)
             self.interactive_frame_button_size = (50, 50)
-            self.interactive_frame_button_icon_size = (30, 30)
+            self.interactive_frame_button_icon_size = (45, 45)
             self.interactive_frame_button_x_offset = 10
             self.interactive_frame_button_x_spacing = 5
             self.preview_parameters_window_size = (450, 330)
@@ -391,6 +391,8 @@ class TrackingContent(QMainWindow):
         self.preview_frame_window.setFrameShape(QFrame.Panel)
         self.preview_frame_window.setFrameShadow(QFrame.Sunken)
         self.preview_frame_window.setLineWidth(5)
+        self.preview_frame_window.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        self.preview_frame_window.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.preview_frame_window.move(new_x, new_y)
         self.preview_frame_window.resize(self.preview_frame_window_size[0], self.preview_frame_window_size[1])
         self.preview_frame_window.setAlignment(Qt.AlignHCenter | Qt.AlignVCenter)
@@ -1070,25 +1072,18 @@ class TrackingContent(QMainWindow):
         self.background_path_folder_descriptor.setText('Background Folder: {0}'.format(self.background_path_folder))
         self.background_path_basename_descriptor.setText('Background Filename: {0}'.format(self.background_path_basename))
         self.save_path_descriptor.setText('Save Path: {0}'.format(self.save_path))
-    def update_preview_frame(self, frame, frame_width, frame_height, scaled_width = None, scaled_height = None, grayscale = True):
+    def update_preview_frame(self, frame, frame_width, frame_height, scaled_width = None, grayscale = True):
         if grayscale:
             format = QImage.Format_Indexed8
         else:
             format = QImage.Format_RGB888
         if scaled_width is None:
-            scaled_width = int(self.preview_frame_window_label_size[0] / 100) * 100
+            scaled_width = int(self.video_frame_width / 100) * 100
         else:
             scaled_width = int(scaled_width / 100) * 100
-        if scaled_height is None:
-            scaled_height = int(self.preview_frame_window_label_size[1] / 100) * 100
-        else:
-            scaled_height = int(scaled_height / 100) * 100
         self.preview_frame = QImage(frame.data, frame_width, frame_height, format)
-        if frame_height >= frame_width:
-           self.preview_frame = self.preview_frame.scaledToHeight(scaled_height)
-        else:
-            self.preview_frame = self.preview_frame.scaledToWidth(scaled_width)
-        frame = cv2.resize(frame, dsize=(self.preview_frame.width(), self.preview_frame.height()), interpolation=cv2.INTER_LINEAR).copy()
+        self.preview_frame = self.preview_frame.scaledToWidth(scaled_width)
+        frame = cv2.resize(frame, dsize=(self.preview_frame.width(), self.preview_frame.height()), interpolation=cv2.INTER_CUBIC).copy()
         self.preview_frame = QImage(frame.data, self.preview_frame.width(), self.preview_frame.height(), format)
     def update_preview_frame_window(self, clear = False):
         if not clear:
@@ -1195,6 +1190,16 @@ class TrackingContent(QMainWindow):
                 self.magnify_frame_button.setEnabled(False)
             if self.pan_frame_button.isEnabled():
                 self.pan_frame_button.setEnabled(False)
+        if self.magnify_frame_button.isEnabled():
+            if self.magnify_frame:
+                self.magnify_frame_button.setChecked(True)
+            else:
+                self.magnify_frame_button.setChecked(False)
+        if self.pan_frame_button.isEnabled():
+            if self.pan_frame:
+                self.pan_frame_button.setChecked(True)
+            else:
+                self.pan_frame_button.setChecked(False)
     def update_frame_window_slider_position(self):
         self.frame_window_slider.setValue(self.frame_number)
     def update_tracking_parameters(self, activate = False, inactivate = False):
@@ -1418,6 +1423,11 @@ class TrackingContent(QMainWindow):
         self.update_tracking_parameters_buttons(activate = True)
         self.update_colour_parameters(activate = True)
         self.update_colour_parameters_buttons(activate = True)
+    def update_preview_frame_window_scroll_bars(self):
+        if self.preview_frame_window_label_size[0] > self.preview_frame_window_size[0]:
+            self.preview_frame_window.horizontalScrollBar().setValue(self.preview_frame_window.horizontalScrollBar().maximum() / 2)
+        if self.preview_frame_window_label_size[1] > self.preview_frame_window_size[1]:
+            self.preview_frame_window.verticalScrollBar().setValue(self.preview_frame_window.verticalScrollBar().maximum() / 2)
 
     # Defining Trigger Functions
     def trigger_save_background(self):
@@ -1475,6 +1485,7 @@ class TrackingContent(QMainWindow):
             if success and self.frame is not None:
                 self.update_preview_frame(self.frame, self.video_frame_width, self.video_frame_height)
                 self.update_preview_frame_window()
+                self.update_preview_frame_window_scroll_bars()
                 self.update_frame_window_slider(activate = True)
                 self.update_preview_frame_number_textbox(activate = True)
                 self.update_update_preview_button(activate = True)
@@ -1490,11 +1501,11 @@ class TrackingContent(QMainWindow):
         if self.preview_background:
             use_grayscale = True
             if magnify:
-                self.update_preview_frame(self.background, self.background_width, self.background_height, scaled_width = self.preview_frame_window_label_size[0] + 100, scaled_height = self.preview_frame_window_label_size[1] + 100, grayscale = use_grayscale)
+                self.update_preview_frame(self.background, self.background_width, self.background_height, scaled_width = self.preview_frame_window_label_size[0] + 100, grayscale = use_grayscale)
             if demagnify:
-                self.update_preview_frame(self.background, self.background_width, self.background_height, scaled_width = self.preview_frame_window_label_size[0] - 100, scaled_height = self.preview_frame_window_label_size[1] - 100, grayscale = use_grayscale)
+                self.update_preview_frame(self.background, self.background_width, self.background_height, scaled_width = self.preview_frame_window_label_size[0] - 100, grayscale = use_grayscale)
             if not magnify and not demagnify:
-                self.update_preview_frame(self.background, self.background_width, self.background_height, grayscale = use_grayscale)
+                self.update_preview_frame(self.background, self.background_width, self.background_height, scaled_width = self.preview_frame_window_label_size[0], grayscale = use_grayscale)
             self.update_preview_frame_window()
             self.update_frame_window_slider(inactivate = True)
             self.update_preview_frame_number_textbox(inactivate = True)
@@ -1508,11 +1519,11 @@ class TrackingContent(QMainWindow):
                     use_grayscale = True
                     self.frame = ut.apply_threshold_to_frame(ut.apply_median_blur_to_frame(ut.subtract_background_from_frame(self.frame, self.background)), self.eyes_threshold)
                     if magnify:
-                        self.update_preview_frame(self.frame, self.video_frame_width, self.video_frame_height, scaled_width = self.preview_frame_window_label_size[0] + 100, scaled_height = self.preview_frame_window_label_size[1] + 100, grayscale = use_grayscale)
+                        self.update_preview_frame(self.frame, self.video_frame_width, self.video_frame_height, scaled_width = self.preview_frame_window_label_size[0] + 100, grayscale = use_grayscale)
                     if demagnify:
-                        self.update_preview_frame(self.frame, self.video_frame_width, self.video_frame_height, scaled_width = self.preview_frame_window_label_size[0] - 100, scaled_height = self.preview_frame_window_label_size[1] - 100, grayscale = use_grayscale)
+                        self.update_preview_frame(self.frame, self.video_frame_width, self.video_frame_height, scaled_width = self.preview_frame_window_label_size[0] - 100, grayscale = use_grayscale)
                     if not magnify and not demagnify:
-                        self.update_preview_frame(self.frame, self.video_frame_width, self.video_frame_height, grayscale = use_grayscale)
+                        self.update_preview_frame(self.frame, self.video_frame_width, self.video_frame_height, scaled_width = self.preview_frame_window_label_size[0], grayscale = use_grayscale)
                     self.update_preview_frame_window()
                     self.update_frame_window_slider(activate = True)
                     self.update_preview_frame_number_textbox(activate = True)
@@ -1537,11 +1548,11 @@ class TrackingContent(QMainWindow):
                             self.frame = ut.annotate_tracking_results_onto_frame(self.frame, results, self.colours, self.line_length, self.extended_eyes_calculation, self.eyes_line_length)
                             use_grayscale = False
                     if magnify:
-                        self.update_preview_frame(self.frame, self.video_frame_width, self.video_frame_height, scaled_width = self.preview_frame_window_label_size[0] + 100, scaled_height = self.preview_frame_window_label_size[1] + 100, grayscale = use_grayscale)
+                        self.update_preview_frame(self.frame, self.video_frame_width, self.video_frame_height, scaled_width = self.preview_frame_window_label_size[0] + 100, grayscale = use_grayscale)
                     if demagnify:
-                        self.update_preview_frame(self.frame, self.video_frame_width, self.video_frame_height, scaled_width = self.preview_frame_window_label_size[0] - 100, scaled_height = self.preview_frame_window_label_size[1] - 100, grayscale = use_grayscale)
+                        self.update_preview_frame(self.frame, self.video_frame_width, self.video_frame_height, scaled_width = self.preview_frame_window_label_size[0] - 100, grayscale = use_grayscale)
                     if not magnify and not demagnify:
-                        self.update_preview_frame(self.frame, self.video_frame_width, self.video_frame_height, grayscale = use_grayscale)
+                        self.update_preview_frame(self.frame, self.video_frame_width, self.video_frame_height, scaled_width = self.preview_frame_window_label_size[0], grayscale = use_grayscale)
                     self.update_preview_frame_window()
                     self.update_frame_window_slider(activate = True)
                     self.update_preview_frame_number_textbox(activate = True)
@@ -1909,12 +1920,14 @@ class TrackingContent(QMainWindow):
             else:
                 if self.preview_frame_window_label_size[0] > 100 and self.preview_frame_window_label_size[1] > 100:
                     self.trigger_update_preview(demagnify = True)
-            current_midpoint_x = (self.preview_frame_window.horizontalScrollBar().pageStep() / 2) + self.preview_frame_window.horizontalScrollBar().value()
-            new_x = self.initial_mouse_position[0] - current_midpoint_x + self.preview_frame_window.horizontalScrollBar().value()
-            current_midpoint_y = (self.preview_frame_window.verticalScrollBar().pageStep() / 2) + self.preview_frame_window.verticalScrollBar().value()
-            new_y = self.initial_mouse_position[1] - current_midpoint_y + self.preview_frame_window.verticalScrollBar().value()
-            self.preview_frame_window.horizontalScrollBar().setValue(new_x)
-            self.preview_frame_window.verticalScrollBar().setValue(new_y)
+            if self.preview_frame_window_label_size[0] > self.preview_frame_window_size[0]:
+                current_midpoint_x = (self.preview_frame_window.horizontalScrollBar().pageStep() / 2) + self.preview_frame_window.horizontalScrollBar().value()
+                new_x = self.initial_mouse_position[0] - current_midpoint_x + self.preview_frame_window.horizontalScrollBar().value()
+                self.preview_frame_window.horizontalScrollBar().setValue(new_x)
+            if self.preview_frame_window_label_size[1] > self.preview_frame_window_size[1]:
+                current_midpoint_y = (self.preview_frame_window.verticalScrollBar().pageStep() / 2) + self.preview_frame_window.verticalScrollBar().value()
+                new_y = self.initial_mouse_position[1] - current_midpoint_y + self.preview_frame_window.verticalScrollBar().value()
+                self.preview_frame_window.verticalScrollBar().setValue(new_y)
         event.accept()
     def event_preview_frame_window_label_mouse_moved(self, event):
         if self.pan_frame:
