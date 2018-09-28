@@ -192,13 +192,13 @@ class TrackingContent(QMainWindow):
             self.update_preview_button_y_spacing = 5
             self.update_preview_button_height = 50
             self.frame_change_button_size = (80, 80)
-            self.interactive_frame_button_size = (50, 50)
-            self.interactive_frame_button_icon_size = (46, 46)
-            self.interactive_frame_button_x_offset = 10
-            self.interactive_frame_button_x_spacing = 5
             self.frame_change_button_x_offset = 10
             self.frame_change_button_x_spacing = 5
             self.frame_change_button_icon_size = (76, 76)
+            self.interactive_frame_button_size = (50, 50)
+            self.interactive_frame_button_icon_size = (30, 30)
+            self.interactive_frame_button_x_offset = 10
+            self.interactive_frame_button_x_spacing = 5
             self.preview_parameters_window_size = (450, 330)
             self.preview_parameters_x_offset = 10
             self.preview_parameters_y_offset = 75
@@ -237,6 +237,9 @@ class TrackingContent(QMainWindow):
             self.main_window_y_offset = 10
             self.main_window_spacing = 10
             self.preview_frame_window_size = (1000, 1000)
+            self.preview_frame_window_x_offset = 30
+            self.preview_frame_window_y_offset = 30
+            self.preview_frame_window_label_size = (self.preview_frame_window_size[0] - self.preview_frame_window_x_offset, self.preview_frame_window_size[1] - self.preview_frame_window_y_offset)
             self.descriptors_window_size = (1060, 1000)
             self.descriptors_x_offset = 10
             self.descriptors_y_offset = 60
@@ -247,10 +250,14 @@ class TrackingContent(QMainWindow):
             self.preview_frame_number_textbox_size = (120, 25)
             self.update_preview_button_y_spacing = 5
             self.update_preview_button_height = 50
-            self.frame_change_button_size = (80, 80)
+            self.frame_change_button_size = (50, 50)
             self.frame_change_button_x_offset = 10
             self.frame_change_button_x_spacing = 5
-            self.frame_change_button_icon_size = (76, 76)
+            self.frame_change_button_icon_size = (46, 46)
+            self.interactive_frame_button_size = (50, 50)
+            self.interactive_frame_button_icon_size = (30, 30)
+            self.interactive_frame_button_x_offset = 10
+            self.interactive_frame_button_x_spacing = 5
             self.preview_parameters_window_size = (400, 295)
             self.preview_parameters_x_offset = 10
             self.preview_parameters_y_offset = 60
@@ -316,6 +323,10 @@ class TrackingContent(QMainWindow):
         self.extended_eyes_calculation = False
         self.tracking_video_thread = None
         self.calculate_background_thread = None
+        self.previous_preview_frame_window_horizontal_scroll_bar_max = None
+        self.previous_preview_frame_window_vertical_scroll_bar_max = None
+        self.magnify_frame = False
+        self.pan_frame = False
 
     # Defining Get Functions
     def get_main_window_attributes(self):
@@ -383,8 +394,6 @@ class TrackingContent(QMainWindow):
         self.preview_frame_window.move(new_x, new_y)
         self.preview_frame_window.resize(self.preview_frame_window_size[0], self.preview_frame_window_size[1])
         self.preview_frame_window.setAlignment(Qt.AlignHCenter | Qt.AlignVCenter)
-        self.preview_frame_window.horizontalScrollBar().rangeChanged.connect(self.check_horizontal_scroll_bar_range_changed)
-        self.preview_frame_window.verticalScrollBar().rangeChanged.connect(self.check_vertical_scroll_bar_range_changed)
         self.preview_frame_window_label = QLabel(self)
         self.preview_frame_window_label.move(new_x, new_y)
         self.preview_frame_window_label.resize(self.preview_frame_window_label_size[0], self.preview_frame_window_label_size[1])
@@ -610,14 +619,17 @@ class TrackingContent(QMainWindow):
         self.magnify_frame_button.move(new_x, new_y)
         self.magnify_frame_button.resize(new_width, new_height)
         self.magnify_frame_button.clicked.connect(self.check_magnify_frame_button)
+        self.magnify_frame_button.setCheckable(True)
 
-        self.demagnify_frame_button = QPushButton(self)
-        self.demagnify_frame_button.setIcon(QIcon('button_icon_12.png'))
-        self.demagnify_frame_button.setIconSize(QSize(new_icon_width, new_icon_height))
+        self.pan_frame_button = QPushButton(self)
+        self.pan_frame_button.setIcon(QIcon('button_icon_12.png'))
+        self.pan_frame_button.setIconSize(QSize(new_icon_width, new_icon_height))
         new_x = ((self.main_window_x_offset + self.preview_frame_number_textbox_label_size[0] + self.preview_frame_number_textbox_size[0] + self.frame_change_button_x_offset + (5 * (self.frame_change_button_x_spacing + self.frame_change_button_size[0]) + self.frame_change_button_size[0]) + self.interactive_frame_button_x_offset + (1 * (self.interactive_frame_button_x_spacing + self.interactive_frame_button_size[0]))) / 2560) * self.main_window_width
-        self.demagnify_frame_button.move(new_x, new_y)
-        self.demagnify_frame_button.resize(new_width, new_height)
-        self.demagnify_frame_button.clicked.connect(self.check_demagnify_frame_button)
+        self.pan_frame_button.move(new_x, new_y)
+        self.pan_frame_button.resize(new_width, new_height)
+        self.pan_frame_button.clicked.connect(self.check_pan_frame_button)
+        self.pan_frame_button.setCheckable(True)
+
         self.update_interactive_frame_buttons(inactivate = True)
     def add_preview_parameters_window(self):
         new_x = self.preview_frame_window_size[0] + ((self.main_window_x_offset + self.main_window_spacing) / 2560) * self.main_window_width
@@ -643,7 +655,6 @@ class TrackingContent(QMainWindow):
         self.preview_background_checkbox = QCheckBox(self)
         new_y = ((self.main_window_y_offset + self.descriptors_window_size[1] + self.main_window_spacing + self.preview_parameters_y_offset + (0 * 2 * self.preview_parameters_height)) / 1400) * self.main_window_height
         self.preview_background_checkbox.move(new_x, new_y)
-        # self.preview_background_checkbox.resize(new_width, new_height)
         self.preview_background_checkbox.stateChanged.connect(self.check_preview_background_checkbox)
         self.preview_background_checkbox_label = QLabel(self)
         new_label_y = ((self.main_window_y_offset + self.descriptors_window_size[1] + self.main_window_spacing + self.preview_parameters_y_offset + self.preview_parameters_y_spacing + (0 * 2 * self.preview_parameters_height)) / 1400) * self.main_window_height
@@ -1008,7 +1019,7 @@ class TrackingContent(QMainWindow):
             colour_textbox.setEnabled(False)
             self.colour_textbox_list.append(colour_textbox)
             colour_button = QPushButton(self)
-            colour_button.setIcon(QIcon('colour_wheel.jpg'))
+            colour_button.setIcon(QIcon('button_icon_13.png'))
             colour_button.setIconSize(QSize(new_icon_height, new_icon_height))
             new_x = new_x + new_textbox_width + self.colour_select_button_x_spacing
             colour_button.move(new_x, new_y)
@@ -1077,7 +1088,7 @@ class TrackingContent(QMainWindow):
            self.preview_frame = self.preview_frame.scaledToHeight(scaled_height)
         else:
             self.preview_frame = self.preview_frame.scaledToWidth(scaled_width)
-        frame = cv2.resize(frame, dsize=(self.preview_frame.width(), self.preview_frame.height()), interpolation=cv2.INTER_CUBIC).copy()
+        frame = cv2.resize(frame, dsize=(self.preview_frame.width(), self.preview_frame.height()), interpolation=cv2.INTER_LINEAR).copy()
         self.preview_frame = QImage(frame.data, self.preview_frame.width(), self.preview_frame.height(), format)
     def update_preview_frame_window(self, clear = False):
         if not clear:
@@ -1087,7 +1098,7 @@ class TrackingContent(QMainWindow):
         else:
             self.preview_frame_window_label.clear()
             self.preview_frame_window_label.setText('Preview Frame Window')
-            self.preview_frame_window_label_size = (self.preview_frame_window_size[0] - self.preview_frame_windor_x_offset, self.preview_frame_window_size[1] - self.preview_frame_window_y_offset)
+            self.preview_frame_window_label_size = (self.preview_frame_window_size[0] - self.preview_frame_window_x_offset, self.preview_frame_window_size[1] - self.preview_frame_window_y_offset)
             self.preview_frame_window_label.resize(self.preview_frame_window_label_size[0], self.preview_frame_window_label_size[1])
     def update_preview_parameters(self, activate = False, inactivate = False, activate_preview_background = False):
         if activate_preview_background:
@@ -1177,13 +1188,13 @@ class TrackingContent(QMainWindow):
         if activate:
             if not self.magnify_frame_button.isEnabled():
                 self.magnify_frame_button.setEnabled(True)
-            if not self.demagnify_frame_button.isEnabled():
-                self.demagnify_frame_button.setEnabled(True)
+            if not self.pan_frame_button.isEnabled():
+                self.pan_frame_button.setEnabled(True)
         if inactivate:
             if self.magnify_frame_button.isEnabled():
                 self.magnify_frame_button.setEnabled(False)
-            if self.demagnify_frame_button.isEnabled():
-                self.demagnify_frame_button.setEnabled(False)
+            if self.pan_frame_button.isEnabled():
+                self.pan_frame_button.setEnabled(False)
     def update_frame_window_slider_position(self):
         self.frame_window_slider.setValue(self.frame_number)
     def update_tracking_parameters(self, activate = False, inactivate = False):
@@ -1369,7 +1380,7 @@ class TrackingContent(QMainWindow):
                 colour_textbox.show()
                 self.colour_textbox_list.append(colour_textbox)
                 colour_button = QPushButton(self)
-                colour_button.setIcon(QIcon('colour_wheel.jpg'))
+                colour_button.setIcon(QIcon('button_icon_13.png'))
                 colour_button.setIconSize(QSize(new_icon_height, new_icon_height))
                 new_x = new_x + new_textbox_width + self.colour_select_button_x_spacing
                 colour_button.move(new_x, new_y)
@@ -1489,7 +1500,7 @@ class TrackingContent(QMainWindow):
             self.update_preview_frame_number_textbox(inactivate = True)
             self.update_update_preview_button(inactivate = True)
             self.update_frame_change_buttons(inactivate = True)
-            self.update_interactive_frame_buttons(inactivate = True)
+            self.update_interactive_frame_buttons(activate = True)
         elif self.preview_eyes_threshold:
             if self.video_path is not None:
                 success, self.frame = ut.load_frame_into_memory(self.video_path, self.frame_number - 1)
@@ -1872,38 +1883,48 @@ class TrackingContent(QMainWindow):
             self.extended_eyes_calculation = False
         if self.preview_tracking_results:
             self.trigger_update_preview()
-    def check_horizontal_scroll_bar_range_changed(self):
-        if self.preview_frame_window_label_size[0] > self.preview_frame_window_size[0]:
-            self.preview_frame_window.horizontalScrollBar().setValue(self.preview_frame_window.horizontalScrollBar().value() + ((self.preview_frame_window.horizontalScrollBar().maximum() - self.previous_preview_frame_window_horizontal_scroll_bar_max) / 2))
-            self.previous_preview_frame_window_horizontal_scroll_bar_max = self.preview_frame_window.horizontalScrollBar().maximum()
-        else:
-            self.preview_frame_window.horizontalScrollBar().setValue(self.preview_frame_window.horizontalScrollBar().maximum() / 2)
-            self.previous_preview_frame_window_horizontal_scroll_bar_max = self.preview_frame_window.horizontalScrollBar().maximum()
-    def check_vertical_scroll_bar_range_changed(self):
-        if self.preview_frame_window_label_size[1] > self.preview_frame_window_size[1]:
-            print(self.previous_preview_frame_window_vertical_scroll_bar_step, self.preview_frame_window.verticalScrollBar().pageStep())
-            self.preview_frame_window.verticalScrollBar().setValue(self.preview_frame_window.verticalScrollBar().value() + ((self.previous_preview_frame_window_vertical_scroll_bar_step - self.preview_frame_window.verticalScrollBar().pageStep()) / 2))
-            self.previous_preview_frame_window_vertical_scroll_bar_step = self.preview_frame_window.verticalScrollBar().pageStep()
-        else:
-            self.preview_frame_window.verticalScrollBar().setValue(self.preview_frame_window.verticalScrollBar().maximum() / 2)
-            self.previous_preview_frame_window_vertical_scroll_bar_step = self.preview_frame_window.verticalScrollBar().pageStep()
     def check_magnify_frame_button(self):
-        self.trigger_update_preview(magnify = True)
-    def check_demagnify_frame_button(self):
-        if self.preview_frame_window_label_size[0] > 200 and self.preview_frame_window_label_size[1] > 200:
-            self.trigger_update_preview(demagnify = True)
+        if self.magnify_frame_button.isChecked():
+            self.magnify_frame = True
+            if self.pan_frame_button.isChecked():
+                self.pan_frame = False
+                self.pan_frame_button.setChecked(False)
+        else:
+            self.magnify_frame = False
+    def check_pan_frame_button(self):
+        if self.pan_frame_button.isChecked():
+            self.pan_frame = True
+            if self.magnify_frame_button.isChecked():
+                self.magnify_frame = False
+                self.magnify_frame_button.setChecked(False)
+        else:
+            self.pan_frame = False
 
     # Defining Event Functions
     def event_preview_frame_window_label_mouse_clicked(self, event):
         self.initial_mouse_position = (event.x(), event.y())
+        if self.magnify_frame:
+            if qApp.mouseButtons() & Qt.LeftButton:
+                self.trigger_update_preview(magnify = True)
+            else:
+                if self.preview_frame_window_label_size[0] > 100 and self.preview_frame_window_label_size[1] > 100:
+                    self.trigger_update_preview(demagnify = True)
+            current_midpoint_x = (self.preview_frame_window.horizontalScrollBar().pageStep() / 2) + self.preview_frame_window.horizontalScrollBar().value()
+            new_x = self.initial_mouse_position[0] - current_midpoint_x + self.preview_frame_window.horizontalScrollBar().value()
+            current_midpoint_y = (self.preview_frame_window.verticalScrollBar().pageStep() / 2) + self.preview_frame_window.verticalScrollBar().value()
+            new_y = self.initial_mouse_position[1] - current_midpoint_y + self.preview_frame_window.verticalScrollBar().value()
+            self.preview_frame_window.horizontalScrollBar().setValue(new_x)
+            self.preview_frame_window.verticalScrollBar().setValue(new_y)
         event.accept()
     def event_preview_frame_window_label_mouse_moved(self, event):
-        new_frame_pos = (event.x() - self.initial_mouse_position[0], event.y() - self.initial_mouse_position[1])
-        if self.preview_frame is not None:
-            if self.preview_frame_window_label_size[0] > self.preview_frame_window_size[0]:
-                self.preview_frame_window.horizontalScrollBar().setValue(self.preview_frame_window.horizontalScrollBar().value() - new_frame_pos[0])
-            if self.preview_frame_window_label_size[1] > self.preview_frame_window_size[1]:
-                self.preview_frame_window.verticalScrollBar().setValue(self.preview_frame_window.verticalScrollBar().value() - new_frame_pos[1])
+        if self.pan_frame:
+            if qApp.mouseButtons() & Qt.LeftButton:
+                new_frame_pos = (event.x() - self.initial_mouse_position[0], event.y() - self.initial_mouse_position[1])
+                if self.preview_frame is not None:
+                    if self.preview_frame_window_label_size[0] > self.preview_frame_window_size[0]:
+                        self.preview_frame_window.horizontalScrollBar().setValue(self.preview_frame_window.horizontalScrollBar().value() - new_frame_pos[0])
+                    if self.preview_frame_window_label_size[1] > self.preview_frame_window_size[1]:
+                        self.preview_frame_window.verticalScrollBar().setValue(self.preview_frame_window.verticalScrollBar().value() - new_frame_pos[1])
         event.accept()
 
 class TrackVideoThread(QThread):
@@ -2035,42 +2056,42 @@ class PlottingContent(QMainWindow):
         self.update_update_preview_button(inactivate = True)
     def add_frame_change_buttons(self):
         self.large_frame_decrease_button = QPushButton(self)
-        self.large_frame_decrease_button.setIcon(QIcon('button_icon_1.png'))
+        self.large_frame_decrease_button.setIcon(QIcon('button_icon_1_1.png'))
         self.large_frame_decrease_button.setIconSize(QSize(46, 46))
         self.large_frame_decrease_button.move(635, 1060)
         self.large_frame_decrease_button.resize(50, 50)
         self.large_frame_decrease_button.clicked.connect(self.check_large_frame_decrease_button)
 
         self.medium_frame_decrease_button = QPushButton(self)
-        self.medium_frame_decrease_button.setIcon(QIcon('button_icon_2.png'))
+        self.medium_frame_decrease_button.setIcon(QIcon('button_icon_1_2.png'))
         self.medium_frame_decrease_button.setIconSize(QSize(46, 46))
         self.medium_frame_decrease_button.move(690, 1060)
         self.medium_frame_decrease_button.resize(50, 50)
         self.medium_frame_decrease_button.clicked.connect(self.check_medium_frame_decrease_button)
 
         self.small_frame_decrease_button = QPushButton(self)
-        self.small_frame_decrease_button.setIcon(QIcon('button_icon_3.png'))
+        self.small_frame_decrease_button.setIcon(QIcon('button_icon_1_3.png'))
         self.small_frame_decrease_button.setIconSize(QSize(46, 46))
         self.small_frame_decrease_button.move(745, 1060)
         self.small_frame_decrease_button.resize(50, 50)
         self.small_frame_decrease_button.clicked.connect(self.check_small_frame_decrease_button)
 
         self.small_frame_increase_button = QPushButton(self)
-        self.small_frame_increase_button.setIcon(QIcon('button_icon_4.png'))
+        self.small_frame_increase_button.setIcon(QIcon('button_icon_1_4.png'))
         self.small_frame_increase_button.setIconSize(QSize(46, 46))
         self.small_frame_increase_button.move(800, 1060)
         self.small_frame_increase_button.resize(50, 50)
         self.small_frame_increase_button.clicked.connect(self.check_small_frame_increase_button)
 
         self.medium_frame_increase_button = QPushButton(self)
-        self.medium_frame_increase_button.setIcon(QIcon('button_icon_5.png'))
+        self.medium_frame_increase_button.setIcon(QIcon('button_icon_1_5.png'))
         self.medium_frame_increase_button.setIconSize(QSize(46, 46))
         self.medium_frame_increase_button.move(855, 1060)
         self.medium_frame_increase_button.resize(50, 50)
         self.medium_frame_increase_button.clicked.connect(self.check_medium_frame_increase_button)
 
         self.large_frame_increase_button = QPushButton(self)
-        self.large_frame_increase_button.setIcon(QIcon('button_icon_6.png'))
+        self.large_frame_increase_button.setIcon(QIcon('button_icon_1_6.png'))
         self.large_frame_increase_button.setIconSize(QSize(46, 46))
         self.large_frame_increase_button.move(910, 1060)
         self.large_frame_increase_button.resize(50, 50)
@@ -2124,7 +2145,7 @@ class PlottingContent(QMainWindow):
            self.preview_frame = self.preview_frame.scaledToHeight(1000)
         else:
             self.preview_frame = self.preview_frame.scaledToWidth(1000)
-        frame = cv2.resize(frame, dsize=(self.preview_frame.width(), self.preview_frame.height()), interpolation=cv2.INTER_CUBIC).copy()
+        frame = cv2.resize(frame, dsize=(self.preview_frame.width(), self.preview_frame.height()), interpolation=cv2.INTER_LINEAR).copy()
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         self.preview_frame = QImage(frame.data, self.preview_frame.width(), self.preview_frame.height(), format)
     def update_preview_frame_window(self, clear = False):
@@ -2545,7 +2566,7 @@ class VideoPlaybackThread(QThread):
         while self.start_thread:
             time_now = time.perf_counter()
             self.time_signal.emit(time_now)
-            time.sleep(0.1)
+            time.sleep(1)
 
     def close(self):
         self.start_thread = False
