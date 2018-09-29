@@ -2069,42 +2069,42 @@ class PlottingContent(QMainWindow):
         self.update_update_preview_button(inactivate = True)
     def add_frame_change_buttons(self):
         self.large_frame_decrease_button = QPushButton(self)
-        self.large_frame_decrease_button.setIcon(QIcon('button_icon_1_1.png'))
+        self.large_frame_decrease_button.setIcon(QIcon('button_icon_1.png'))
         self.large_frame_decrease_button.setIconSize(QSize(46, 46))
         self.large_frame_decrease_button.move(635, 1060)
         self.large_frame_decrease_button.resize(50, 50)
         self.large_frame_decrease_button.clicked.connect(self.check_large_frame_decrease_button)
 
         self.medium_frame_decrease_button = QPushButton(self)
-        self.medium_frame_decrease_button.setIcon(QIcon('button_icon_1_2.png'))
+        self.medium_frame_decrease_button.setIcon(QIcon('button_icon_2.png'))
         self.medium_frame_decrease_button.setIconSize(QSize(46, 46))
         self.medium_frame_decrease_button.move(690, 1060)
         self.medium_frame_decrease_button.resize(50, 50)
         self.medium_frame_decrease_button.clicked.connect(self.check_medium_frame_decrease_button)
 
         self.small_frame_decrease_button = QPushButton(self)
-        self.small_frame_decrease_button.setIcon(QIcon('button_icon_1_3.png'))
+        self.small_frame_decrease_button.setIcon(QIcon('button_icon_3.png'))
         self.small_frame_decrease_button.setIconSize(QSize(46, 46))
         self.small_frame_decrease_button.move(745, 1060)
         self.small_frame_decrease_button.resize(50, 50)
         self.small_frame_decrease_button.clicked.connect(self.check_small_frame_decrease_button)
 
         self.small_frame_increase_button = QPushButton(self)
-        self.small_frame_increase_button.setIcon(QIcon('button_icon_1_4.png'))
+        self.small_frame_increase_button.setIcon(QIcon('button_icon_4.png'))
         self.small_frame_increase_button.setIconSize(QSize(46, 46))
         self.small_frame_increase_button.move(800, 1060)
         self.small_frame_increase_button.resize(50, 50)
         self.small_frame_increase_button.clicked.connect(self.check_small_frame_increase_button)
 
         self.medium_frame_increase_button = QPushButton(self)
-        self.medium_frame_increase_button.setIcon(QIcon('button_icon_1_5.png'))
+        self.medium_frame_increase_button.setIcon(QIcon('button_icon_5.png'))
         self.medium_frame_increase_button.setIconSize(QSize(46, 46))
         self.medium_frame_increase_button.move(855, 1060)
         self.medium_frame_increase_button.resize(50, 50)
         self.medium_frame_increase_button.clicked.connect(self.check_medium_frame_increase_button)
 
         self.large_frame_increase_button = QPushButton(self)
-        self.large_frame_increase_button.setIcon(QIcon('button_icon_1_6.png'))
+        self.large_frame_increase_button.setIcon(QIcon('button_icon_6.png'))
         self.large_frame_increase_button.setIconSize(QSize(46, 46))
         self.large_frame_increase_button.move(910, 1060)
         self.large_frame_increase_button.resize(50, 50)
@@ -2117,6 +2117,7 @@ class PlottingContent(QMainWindow):
         self.pause_video_button.move(275, 1060)
         self.pause_video_button.resize(80, 80)
         self.pause_video_button.clicked.connect(self.check_pause_video_button)
+        self.pause_video_button.setCheckable(True)
 
         self.play_video_slow_speed_button = QPushButton(self)
         self.play_video_slow_speed_button.setIcon(QIcon('button_icon_8.png'))
@@ -2124,6 +2125,7 @@ class PlottingContent(QMainWindow):
         self.play_video_slow_speed_button.move(360, 1060)
         self.play_video_slow_speed_button.resize(80, 80)
         self.play_video_slow_speed_button.clicked.connect(self.check_play_video_slow_speed_button)
+        self.play_video_slow_speed_button.setCheckable(True)
 
         self.play_video_medium_speed_button = QPushButton(self)
         self.play_video_medium_speed_button.setIcon(QIcon('button_icon_9.png'))
@@ -2131,6 +2133,7 @@ class PlottingContent(QMainWindow):
         self.play_video_medium_speed_button.move(445, 1060)
         self.play_video_medium_speed_button.resize(80, 80)
         self.play_video_medium_speed_button.clicked.connect(self.check_play_video_medium_speed_button)
+        self.play_video_medium_speed_button.setCheckable(True)
 
         self.play_video_max_speed_button = QPushButton(self)
         self.play_video_max_speed_button.setIcon(QIcon('button_icon_10.png'))
@@ -2138,6 +2141,7 @@ class PlottingContent(QMainWindow):
         self.play_video_max_speed_button.move(530, 1060)
         self.play_video_max_speed_button.resize(80, 80)
         self.play_video_max_speed_button.clicked.connect(self.check_play_video_max_speed_button)
+        self.play_video_max_speed_button.setCheckable(True)
         self.update_video_playback_buttons(inactivate = True)
     def add_data_plot_window(self):
         self.data_plot_window = QScrollArea(self)
@@ -2579,7 +2583,7 @@ class VideoPlaybackThread(QThread):
         while self.start_thread:
             time_now = time.perf_counter()
             self.time_signal.emit(time_now)
-            time.sleep(1)
+            time.sleep(0.1)
 
     def close(self):
         self.start_thread = False
