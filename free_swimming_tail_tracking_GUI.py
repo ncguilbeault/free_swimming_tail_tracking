@@ -255,7 +255,7 @@ class TrackingContent(QMainWindow):
             self.frame_change_button_x_spacing = 5
             self.frame_change_button_icon_size = (46, 46)
             self.interactive_frame_button_size = (50, 50)
-            self.interactive_frame_button_icon_size = (30, 30)
+            self.interactive_frame_button_icon_size = (40, 40)
             self.interactive_frame_button_x_offset = 10
             self.interactive_frame_button_x_spacing = 5
             self.preview_parameters_window_size = (400, 295)
@@ -1188,8 +1188,12 @@ class TrackingContent(QMainWindow):
         if inactivate:
             if self.magnify_frame_button.isEnabled():
                 self.magnify_frame_button.setEnabled(False)
+                if self.magnify_frame_button.isChecked():
+                    self.magnify_frame_button.setChecked(False)
             if self.pan_frame_button.isEnabled():
                 self.pan_frame_button.setEnabled(False)
+                if self.pan_frame_button.isChecked():
+                    self.pan_frame_button.setChecked(False)
         if self.magnify_frame_button.isEnabled():
             if self.magnify_frame:
                 self.magnify_frame_button.setChecked(True)
