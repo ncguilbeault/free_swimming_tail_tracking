@@ -149,7 +149,7 @@ class TrackingContent(QMainWindow):
         self.add_descriptors_to_window()
         self.add_frame_window_slider()
         self.add_preview_frame_number_textbox()
-        self.add_update_preview_button()
+        self.add_video_playback_buttons()
         self.add_frame_change_buttons()
         self.add_interactive_frame_buttons()
         self.add_preview_parameters_window()
@@ -160,6 +160,9 @@ class TrackingContent(QMainWindow):
         self.add_colour_parameters_window()
         self.add_colour_parameters_to_window()
         self.add_colour_parameters_buttons()
+        self.add_video_time_textbox()
+        self.add_status_window()
+        self.add_statuses_to_window()
         self.setWindowTitle('Free Swimming Tail Tracking')
         self.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Ignored)
         self.resize(self.tracking_content_size[0], self.tracking_content_size[1])
@@ -181,24 +184,38 @@ class TrackingContent(QMainWindow):
             self.preview_frame_window_x_offset = 30
             self.preview_frame_window_y_offset = 30
             self.preview_frame_window_label_size = (self.preview_frame_window_size[0] - self.preview_frame_window_x_offset, self.preview_frame_window_size[1] - self.preview_frame_window_y_offset)
-            self.descriptors_window_size = (845, 900)
+            self.descriptors_window_size = (845, 500)
             self.descriptors_x_offset = 10
             self.descriptors_y_offset = 75
             self.descriptors_height = 30
+            self.descriptors_y_spacing = 10
+            self.status_window_size = (845, 390)
+            self.statuses_x_offset = 20
+            self.statuses_y_offset = 75
+            self.status_bars_height = 30
+            self.statuses_button_size = (400, 50)
+            self.statuses_y_spacing = 10
+            self.statuses_x_spacing = 10
+            self.status_buttons_y_spacing = 10
             self.preview_frame_window_slider_height = 20
             self.preview_frame_number_textbox_y_spacing = 10
             self.preview_frame_number_textbox_label_size = (160, 25)
             self.preview_frame_number_textbox_size = (120, 25)
-            self.update_preview_button_y_spacing = 5
-            self.update_preview_button_height = 50
+            self.video_time_textbox_y_spacing = 10
+            self.video_time_textbox_label_size = (160, 25)
+            self.video_time_textbox_size = (120, 25)
             self.frame_change_button_size = (50, 50)
-            self.frame_change_button_x_offset = 10
+            self.frame_change_button_x_offset = 30
             self.frame_change_button_x_spacing = 5
             self.frame_change_button_icon_size = (60, 60)
             self.interactive_frame_button_size = (50, 50)
             self.interactive_frame_button_icon_size = (45, 45)
-            self.interactive_frame_button_x_offset = 10
+            self.interactive_frame_button_x_offset = 30
             self.interactive_frame_button_x_spacing = 5
+            self.video_playback_button_size = (50, 50)
+            self.video_playback_button_x_offset = 30
+            self.video_playback_button_x_spacing = 5
+            self.video_playback_button_icon_size = (60, 60)
             self.preview_parameters_window_size = (450, 330)
             self.preview_parameters_x_offset = 10
             self.preview_parameters_y_offset = 75
@@ -327,6 +344,9 @@ class TrackingContent(QMainWindow):
         self.previous_preview_frame_window_vertical_scroll_bar_max = None
         self.magnify_frame = False
         self.pan_frame = False
+        self.play_video_slow_speed = False
+        self.play_video_medium_speed = False
+        self.play_video_max_speed = False
 
     # Defining Get Functions
     def get_main_window_attributes(self):
@@ -426,7 +446,7 @@ class TrackingContent(QMainWindow):
         new_height = (self.descriptors_height / 1400) * self.main_window_height
 
         self.video_path_folder_descriptor = QLabel(self)
-        new_y = ((self.main_window_y_offset + self.descriptors_y_offset + (0 * 2 * self.descriptors_height)) / 1400) * self.main_window_height
+        new_y = ((self.main_window_y_offset + self.descriptors_y_offset + (0 * (self.descriptors_height + self.descriptors_y_spacing))) / 1400) * self.main_window_height
         self.video_path_folder_descriptor.move(new_x, new_y)
         self.video_path_folder_descriptor.resize(new_width, new_height)
         self.video_path_folder_descriptor.setText('Video Folder: {0}'.format(self.video_path_folder))
@@ -434,7 +454,7 @@ class TrackingContent(QMainWindow):
         self.video_path_folder_descriptor.setFont(self.font_text)
 
         self.video_path_basename_descriptor = QLabel(self)
-        new_y = ((self.main_window_y_offset + self.descriptors_y_offset + (1 * 2 * self.descriptors_height)) / 1400) * self.main_window_height
+        new_y = ((self.main_window_y_offset + self.descriptors_y_offset + (1 * (self.descriptors_height + self.descriptors_y_spacing))) / 1400) * self.main_window_height
         self.video_path_basename_descriptor.move(new_x, new_y)
         self.video_path_basename_descriptor.resize(new_width, new_height)
         self.video_path_basename_descriptor.setText('Video Filename: {0}'.format(self.video_path_basename))
@@ -442,7 +462,7 @@ class TrackingContent(QMainWindow):
         self.video_path_basename_descriptor.setFont(self.font_text)
 
         self.video_n_frames_descriptor = QLabel(self)
-        new_y = ((self.main_window_y_offset + self.descriptors_y_offset + (2 * 2 * self.descriptors_height)) / 1400) * self.main_window_height
+        new_y = ((self.main_window_y_offset + self.descriptors_y_offset + (2 * (self.descriptors_height + self.descriptors_y_spacing))) / 1400) * self.main_window_height
         self.video_n_frames_descriptor.move(new_x, new_y)
         self.video_n_frames_descriptor.resize(new_width, new_height)
         self.video_n_frames_descriptor.setText('Video Total Frames: {0}'.format(self.video_n_frames))
@@ -450,7 +470,7 @@ class TrackingContent(QMainWindow):
         self.video_n_frames_descriptor.setFont(self.font_text)
 
         self.video_fps_descriptor = QLabel(self)
-        new_y = ((self.main_window_y_offset + self.descriptors_y_offset + (3 * 2 * self.descriptors_height)) / 1400) * self.main_window_height
+        new_y = ((self.main_window_y_offset + self.descriptors_y_offset + (3 * (self.descriptors_height + self.descriptors_y_spacing))) / 1400) * self.main_window_height
         self.video_fps_descriptor.move(new_x, new_y)
         self.video_fps_descriptor.resize(new_width, new_height)
         self.video_fps_descriptor.setText('Video FPS: {0}'.format(self.video_fps))
@@ -458,7 +478,7 @@ class TrackingContent(QMainWindow):
         self.video_fps_descriptor.setFont(self.font_text)
 
         self.video_format_descriptor = QLabel(self)
-        new_y = ((self.main_window_y_offset + self.descriptors_y_offset + (4 * 2 * self.descriptors_height)) / 1400) * self.main_window_height
+        new_y = ((self.main_window_y_offset + self.descriptors_y_offset + (4 * (self.descriptors_height + self.descriptors_y_spacing))) / 1400) * self.main_window_height
         self.video_format_descriptor.move(new_x, new_y)
         self.video_format_descriptor.resize(new_width, new_height)
         self.video_format_descriptor.setText('Video Format: {0}'.format(self.video_format))
@@ -466,7 +486,7 @@ class TrackingContent(QMainWindow):
         self.video_format_descriptor.setFont(self.font_text)
 
         self.frame_width_descriptor = QLabel(self)
-        new_y = ((self.main_window_y_offset + self.descriptors_y_offset + (5 * 2 * self.descriptors_height)) / 1400) * self.main_window_height
+        new_y = ((self.main_window_y_offset + self.descriptors_y_offset + (5 * (self.descriptors_height + self.descriptors_y_spacing))) / 1400) * self.main_window_height
         self.frame_width_descriptor.move(new_x, new_y)
         self.frame_width_descriptor.resize(new_width, new_height)
         self.frame_width_descriptor.setText('Frame Width: {0}'.format(self.video_frame_width))
@@ -474,7 +494,7 @@ class TrackingContent(QMainWindow):
         self.frame_width_descriptor.setFont(self.font_text)
 
         self.frame_height_descriptor = QLabel(self)
-        new_y = ((self.main_window_y_offset + self.descriptors_y_offset + (6 * 2 * self.descriptors_height)) / 1400) * self.main_window_height
+        new_y = ((self.main_window_y_offset + self.descriptors_y_offset + (6 * (self.descriptors_height + self.descriptors_y_spacing))) / 1400) * self.main_window_height
         self.frame_height_descriptor.move(new_x, new_y)
         self.frame_height_descriptor.resize(new_width, new_height)
         self.frame_height_descriptor.setText('Frame Height: {0}'.format(self.video_frame_height))
@@ -482,7 +502,7 @@ class TrackingContent(QMainWindow):
         self.frame_height_descriptor.setFont(self.font_text)
 
         self.background_path_folder_descriptor = QLabel(self)
-        new_y = ((self.main_window_y_offset + self.descriptors_y_offset + (7 * 2 * self.descriptors_height)) / 1400) * self.main_window_height
+        new_y = ((self.main_window_y_offset + self.descriptors_y_offset + (7 * (self.descriptors_height + self.descriptors_y_spacing))) / 1400) * self.main_window_height
         self.background_path_folder_descriptor.move(new_x, new_y)
         self.background_path_folder_descriptor.resize(new_width, new_height)
         self.background_path_folder_descriptor.setText('Background Folder: {0}'.format(self.background_path_folder))
@@ -490,7 +510,7 @@ class TrackingContent(QMainWindow):
         self.background_path_folder_descriptor.setFont(self.font_text)
 
         self.background_path_basename_descriptor = QLabel(self)
-        new_y = ((self.main_window_y_offset + self.descriptors_y_offset + (8 * 2 * self.descriptors_height)) / 1400) * self.main_window_height
+        new_y = ((self.main_window_y_offset + self.descriptors_y_offset + (8 * (self.descriptors_height + self.descriptors_y_spacing))) / 1400) * self.main_window_height
         self.background_path_basename_descriptor.move(new_x, new_y)
         self.background_path_basename_descriptor.resize(new_width, new_height)
         self.background_path_basename_descriptor.setText('Background Filename: {0}'.format(self.background_path_basename))
@@ -498,7 +518,7 @@ class TrackingContent(QMainWindow):
         self.background_path_basename_descriptor.setFont(self.font_text)
 
         self.save_path_descriptor = QLabel(self)
-        new_y = ((self.main_window_y_offset + self.descriptors_y_offset + (9 * 2 * self.descriptors_height)) / 1400) * self.main_window_height
+        new_y = ((self.main_window_y_offset + self.descriptors_y_offset + (9 * (self.descriptors_height + self.descriptors_y_spacing))) / 1400) * self.main_window_height
         self.save_path_descriptor.move(new_x, new_y)
         self.save_path_descriptor.resize(new_width, new_height)
         self.save_path_descriptor.setText('Save Path: {0}'.format(self.save_path))
@@ -562,7 +582,7 @@ class TrackingContent(QMainWindow):
         self.large_frame_decrease_button = QPushButton(self)
         self.large_frame_decrease_button.setIcon(QIcon('button_icon_1.png'))
         self.large_frame_decrease_button.setIconSize(QSize(new_icon_width, new_icon_height))
-        new_x = ((self.main_window_x_offset + self.preview_frame_number_textbox_label_size[0] + self.preview_frame_number_textbox_size[0] + self.frame_change_button_x_offset + (0 * (self.frame_change_button_x_spacing + self.frame_change_button_size[0]))) / 2560) * self.main_window_width
+        new_x = ((self.main_window_x_offset + self.preview_frame_number_textbox_label_size[0] + self.preview_frame_number_textbox_size[0] + self.video_playback_button_x_offset + (3 * (self.video_playback_button_x_spacing + self.video_playback_button_size[0]) + self.video_playback_button_size[0]) + self.frame_change_button_x_offset + (0 * (self.frame_change_button_x_spacing + self.frame_change_button_size[0]))) / 2560) * self.main_window_width
         self.large_frame_decrease_button.move(new_x, new_y)
         self.large_frame_decrease_button.resize(new_width, new_height)
         self.large_frame_decrease_button.clicked.connect(self.check_large_frame_decrease_button)
@@ -570,7 +590,7 @@ class TrackingContent(QMainWindow):
         self.medium_frame_decrease_button = QPushButton(self)
         self.medium_frame_decrease_button.setIcon(QIcon('button_icon_2.png'))
         self.medium_frame_decrease_button.setIconSize(QSize(new_icon_width, new_icon_height))
-        new_x = ((self.main_window_x_offset + self.preview_frame_number_textbox_label_size[0] + self.preview_frame_number_textbox_size[0] + self.frame_change_button_x_offset + (1 * (self.frame_change_button_x_spacing + self.frame_change_button_size[0]))) / 2560) * self.main_window_width
+        new_x = ((self.main_window_x_offset + self.preview_frame_number_textbox_label_size[0] + self.preview_frame_number_textbox_size[0] + self.video_playback_button_x_offset + (3 * (self.video_playback_button_x_spacing + self.video_playback_button_size[0]) + self.video_playback_button_size[0]) + self.frame_change_button_x_offset + (1 * (self.frame_change_button_x_spacing + self.frame_change_button_size[0]))) / 2560) * self.main_window_width
         self.medium_frame_decrease_button.move(new_x, new_y)
         self.medium_frame_decrease_button.resize(new_width, new_height)
         self.medium_frame_decrease_button.clicked.connect(self.check_medium_frame_decrease_button)
@@ -578,7 +598,7 @@ class TrackingContent(QMainWindow):
         self.small_frame_decrease_button = QPushButton(self)
         self.small_frame_decrease_button.setIcon(QIcon('button_icon_3.png'))
         self.small_frame_decrease_button.setIconSize(QSize(new_icon_width, new_icon_height))
-        new_x = ((self.main_window_x_offset + self.preview_frame_number_textbox_label_size[0] + self.preview_frame_number_textbox_size[0] + self.frame_change_button_x_offset + (2 * (self.frame_change_button_x_spacing + self.frame_change_button_size[0]))) / 2560) * self.main_window_width
+        new_x = ((self.main_window_x_offset + self.preview_frame_number_textbox_label_size[0] + self.preview_frame_number_textbox_size[0] + self.video_playback_button_x_offset + (3 * (self.video_playback_button_x_spacing + self.video_playback_button_size[0]) + self.video_playback_button_size[0]) + self.frame_change_button_x_offset + (2 * (self.frame_change_button_x_spacing + self.frame_change_button_size[0]))) / 2560) * self.main_window_width
         self.small_frame_decrease_button.move(new_x, new_y)
         self.small_frame_decrease_button.resize(new_width, new_height)
         self.small_frame_decrease_button.clicked.connect(self.check_small_frame_decrease_button)
@@ -586,7 +606,7 @@ class TrackingContent(QMainWindow):
         self.small_frame_increase_button = QPushButton(self)
         self.small_frame_increase_button.setIcon(QIcon('button_icon_4.png'))
         self.small_frame_increase_button.setIconSize(QSize(new_icon_width, new_icon_height))
-        new_x = ((self.main_window_x_offset + self.preview_frame_number_textbox_label_size[0] + self.preview_frame_number_textbox_size[0] + self.frame_change_button_x_offset + (3 * (self.frame_change_button_x_spacing + self.frame_change_button_size[0]))) / 2560) * self.main_window_width
+        new_x = ((self.main_window_x_offset + self.preview_frame_number_textbox_label_size[0] + self.preview_frame_number_textbox_size[0] + self.video_playback_button_x_offset + (3 * (self.video_playback_button_x_spacing + self.video_playback_button_size[0]) + self.video_playback_button_size[0]) + self.frame_change_button_x_offset + (3 * (self.frame_change_button_x_spacing + self.frame_change_button_size[0]))) / 2560) * self.main_window_width
         self.small_frame_increase_button.move(new_x, new_y)
         self.small_frame_increase_button.resize(new_width, new_height)
         self.small_frame_increase_button.clicked.connect(self.check_small_frame_increase_button)
@@ -594,7 +614,7 @@ class TrackingContent(QMainWindow):
         self.medium_frame_increase_button = QPushButton(self)
         self.medium_frame_increase_button.setIcon(QIcon('button_icon_5.png'))
         self.medium_frame_increase_button.setIconSize(QSize(new_icon_width, new_icon_height))
-        new_x = ((self.main_window_x_offset + self.preview_frame_number_textbox_label_size[0] + self.preview_frame_number_textbox_size[0] + self.frame_change_button_x_offset + (4 * (self.frame_change_button_x_spacing + self.frame_change_button_size[0]))) / 2560) * self.main_window_width
+        new_x = ((self.main_window_x_offset + self.preview_frame_number_textbox_label_size[0] + self.preview_frame_number_textbox_size[0] + self.video_playback_button_x_offset + (3 * (self.video_playback_button_x_spacing + self.video_playback_button_size[0]) + self.video_playback_button_size[0]) + self.frame_change_button_x_offset + (4 * (self.frame_change_button_x_spacing + self.frame_change_button_size[0]))) / 2560) * self.main_window_width
         self.medium_frame_increase_button.move(new_x, new_y)
         self.medium_frame_increase_button.resize(new_width, new_height)
         self.medium_frame_increase_button.clicked.connect(self.check_medium_frame_increase_button)
@@ -602,7 +622,7 @@ class TrackingContent(QMainWindow):
         self.large_frame_increase_button = QPushButton(self)
         self.large_frame_increase_button.setIcon(QIcon('button_icon_6.png'))
         self.large_frame_increase_button.setIconSize(QSize(new_icon_width, new_icon_height))
-        new_x = ((self.main_window_x_offset + self.preview_frame_number_textbox_label_size[0] + self.preview_frame_number_textbox_size[0] + self.frame_change_button_x_offset + (5 * (self.frame_change_button_x_spacing + self.frame_change_button_size[0]))) / 2560) * self.main_window_width
+        new_x = ((self.main_window_x_offset + self.preview_frame_number_textbox_label_size[0] + self.preview_frame_number_textbox_size[0] + self.video_playback_button_x_offset + (3 * (self.video_playback_button_x_spacing + self.video_playback_button_size[0]) + self.video_playback_button_size[0]) + self.frame_change_button_x_offset + (5 * (self.frame_change_button_x_spacing + self.frame_change_button_size[0]))) / 2560) * self.main_window_width
         self.large_frame_increase_button.move(new_x, new_y)
         self.large_frame_increase_button.resize(new_width, new_height)
         self.large_frame_increase_button.clicked.connect(self.check_large_frame_increase_button)
@@ -617,7 +637,7 @@ class TrackingContent(QMainWindow):
         self.magnify_frame_button = QPushButton(self)
         self.magnify_frame_button.setIcon(QIcon('button_icon_11.png'))
         self.magnify_frame_button.setIconSize(QSize(new_icon_width, new_icon_height))
-        new_x = ((self.main_window_x_offset + self.preview_frame_number_textbox_label_size[0] + self.preview_frame_number_textbox_size[0] + self.frame_change_button_x_offset + (5 * (self.frame_change_button_x_spacing + self.frame_change_button_size[0]) + self.frame_change_button_size[0]) + self.interactive_frame_button_x_offset + (0 * (self.interactive_frame_button_x_spacing + self.interactive_frame_button_size[0]))) / 2560) * self.main_window_width
+        new_x = ((self.main_window_x_offset + self.preview_frame_number_textbox_label_size[0] + self.preview_frame_number_textbox_size[0] + self.video_playback_button_x_offset + (3 * (self.video_playback_button_x_spacing + self.video_playback_button_size[0]) + self.video_playback_button_size[0]) + self.frame_change_button_x_offset + (5 * (self.frame_change_button_x_spacing + self.frame_change_button_size[0]) + self.frame_change_button_size[0]) + self.interactive_frame_button_x_offset + (0 * (self.interactive_frame_button_x_spacing + self.interactive_frame_button_size[0]))) / 2560) * self.main_window_width
         self.magnify_frame_button.move(new_x, new_y)
         self.magnify_frame_button.resize(new_width, new_height)
         self.magnify_frame_button.clicked.connect(self.check_magnify_frame_button)
@@ -626,7 +646,7 @@ class TrackingContent(QMainWindow):
         self.pan_frame_button = QPushButton(self)
         self.pan_frame_button.setIcon(QIcon('button_icon_12.png'))
         self.pan_frame_button.setIconSize(QSize(new_icon_width, new_icon_height))
-        new_x = ((self.main_window_x_offset + self.preview_frame_number_textbox_label_size[0] + self.preview_frame_number_textbox_size[0] + self.frame_change_button_x_offset + (5 * (self.frame_change_button_x_spacing + self.frame_change_button_size[0]) + self.frame_change_button_size[0]) + self.interactive_frame_button_x_offset + (1 * (self.interactive_frame_button_x_spacing + self.interactive_frame_button_size[0]))) / 2560) * self.main_window_width
+        new_x = ((self.main_window_x_offset + self.preview_frame_number_textbox_label_size[0] + self.preview_frame_number_textbox_size[0] + self.video_playback_button_x_offset + (3 * (self.video_playback_button_x_spacing + self.video_playback_button_size[0]) + self.video_playback_button_size[0]) + self.frame_change_button_x_offset + (5 * (self.frame_change_button_x_spacing + self.frame_change_button_size[0]) + self.frame_change_button_size[0]) + self.interactive_frame_button_x_offset + (1 * (self.interactive_frame_button_x_spacing + self.interactive_frame_button_size[0]))) / 2560) * self.main_window_width
         self.pan_frame_button.move(new_x, new_y)
         self.pan_frame_button.resize(new_width, new_height)
         self.pan_frame_button.clicked.connect(self.check_pan_frame_button)
@@ -635,7 +655,7 @@ class TrackingContent(QMainWindow):
         self.update_interactive_frame_buttons(inactivate = True)
     def add_preview_parameters_window(self):
         new_x = self.preview_frame_window_size[0] + ((self.main_window_x_offset + self.main_window_spacing) / 2560) * self.main_window_width
-        new_y = ((self.main_window_y_offset + self.descriptors_window_size[1] + self.main_window_spacing) / 1400) * self.main_window_height
+        new_y = ((self.main_window_y_offset + self.tracking_parameters_window_size[1] + self.main_window_spacing) / 1400) * self.main_window_height
         new_width = (self.preview_parameters_window_size[0] / 2560) * self.main_window_width
         new_height = (self.preview_parameters_window_size[1] / 1400) * self.main_window_height
 
@@ -655,11 +675,11 @@ class TrackingContent(QMainWindow):
         new_label_x = self.preview_frame_window_size[0] + ((self.main_window_x_offset + self.main_window_spacing + self.preview_parameters_x_offset + self.preview_parameters_checkbox_size[0] + self.preview_parameters_x_spacing) / 2560) * self.main_window_width
 
         self.preview_background_checkbox = QCheckBox(self)
-        new_y = ((self.main_window_y_offset + self.descriptors_window_size[1] + self.main_window_spacing + self.preview_parameters_y_offset + (0 * 2 * self.preview_parameters_height)) / 1400) * self.main_window_height
+        new_y = ((self.main_window_y_offset + self.tracking_parameters_window_size[1] + self.main_window_spacing + self.preview_parameters_y_offset + (0 * 2 * self.preview_parameters_height)) / 1400) * self.main_window_height
         self.preview_background_checkbox.move(new_x, new_y)
         self.preview_background_checkbox.stateChanged.connect(self.check_preview_background_checkbox)
         self.preview_background_checkbox_label = QLabel(self)
-        new_label_y = ((self.main_window_y_offset + self.descriptors_window_size[1] + self.main_window_spacing + self.preview_parameters_y_offset + self.preview_parameters_y_spacing + (0 * 2 * self.preview_parameters_height)) / 1400) * self.main_window_height
+        new_label_y = ((self.main_window_y_offset + self.tracking_parameters_window_size[1] + self.main_window_spacing + self.preview_parameters_y_offset + self.preview_parameters_y_spacing + (0 * 2 * self.preview_parameters_height)) / 1400) * self.main_window_height
         self.preview_background_checkbox_label.move(new_label_x, new_label_y)
         self.preview_background_checkbox_label.resize(new_label_width, new_label_height)
         self.preview_background_checkbox_label.setText('Preview Background')
@@ -667,11 +687,11 @@ class TrackingContent(QMainWindow):
         self.preview_background_checkbox_label.setFont(self.font_text)
 
         self.preview_background_subtracted_frame_checkbox = QCheckBox(self)
-        new_y = ((self.main_window_y_offset + self.descriptors_window_size[1] + self.main_window_spacing + self.preview_parameters_y_offset + (1 * 2 * self.preview_parameters_height)) / 1400) * self.main_window_height
+        new_y = ((self.main_window_y_offset + self.tracking_parameters_window_size[1] + self.main_window_spacing + self.preview_parameters_y_offset + (1 * 2 * self.preview_parameters_height)) / 1400) * self.main_window_height
         self.preview_background_subtracted_frame_checkbox.move(new_x, new_y)
         self.preview_background_subtracted_frame_checkbox.stateChanged.connect(self.check_preview_background_subtracted_frame_checkbox)
         self.preview_background_subtracted_frame_checkbox_label = QLabel(self)
-        new_label_y = ((self.main_window_y_offset + self.descriptors_window_size[1] + self.main_window_spacing + self.preview_parameters_y_offset + self.preview_parameters_y_spacing + (1 * 2 * self.preview_parameters_height)) / 1400) * self.main_window_height
+        new_label_y = ((self.main_window_y_offset + self.tracking_parameters_window_size[1] + self.main_window_spacing + self.preview_parameters_y_offset + self.preview_parameters_y_spacing + (1 * 2 * self.preview_parameters_height)) / 1400) * self.main_window_height
         self.preview_background_subtracted_frame_checkbox_label.move(new_label_x, new_label_y)
         self.preview_background_subtracted_frame_checkbox_label.resize(new_label_width, new_label_height)
         self.preview_background_subtracted_frame_checkbox_label.setText('Preview Background Subtracted Frames')
@@ -679,11 +699,11 @@ class TrackingContent(QMainWindow):
         self.preview_background_subtracted_frame_checkbox_label.setFont(self.font_text)
 
         self.preview_tracking_results_checkbox = QCheckBox(self)
-        new_y = ((self.main_window_y_offset + self.descriptors_window_size[1] + self.main_window_spacing + self.preview_parameters_y_offset + (2 * 2 * self.preview_parameters_height)) / 1400) * self.main_window_height
+        new_y = ((self.main_window_y_offset + self.tracking_parameters_window_size[1] + self.main_window_spacing + self.preview_parameters_y_offset + (2 * 2 * self.preview_parameters_height)) / 1400) * self.main_window_height
         self.preview_tracking_results_checkbox.move(new_x, new_y)
         self.preview_tracking_results_checkbox.stateChanged.connect(self.check_preview_tracking_results_checkbox)
         self.preview_tracking_results_checkbox_label = QLabel(self)
-        new_label_y = ((self.main_window_y_offset + self.descriptors_window_size[1] + self.main_window_spacing + self.preview_parameters_y_offset + self.preview_parameters_y_spacing + (2 * 2 * self.preview_parameters_height)) / 1400) * self.main_window_height
+        new_label_y = ((self.main_window_y_offset + self.tracking_parameters_window_size[1] + self.main_window_spacing + self.preview_parameters_y_offset + self.preview_parameters_y_spacing + (2 * 2 * self.preview_parameters_height)) / 1400) * self.main_window_height
         self.preview_tracking_results_checkbox_label.move(new_label_x, new_label_y)
         self.preview_tracking_results_checkbox_label.resize(new_label_width, new_label_height)
         self.preview_tracking_results_checkbox_label.setText('Preview Tracking Results')
@@ -691,11 +711,11 @@ class TrackingContent(QMainWindow):
         self.preview_tracking_results_checkbox_label.setFont(self.font_text)
 
         self.preview_eyes_threshold_checkbox = QCheckBox(self)
-        new_y = ((self.main_window_y_offset + self.descriptors_window_size[1] + self.main_window_spacing + self.preview_parameters_y_offset + (3 * 2 * self.preview_parameters_height)) / 1400) * self.main_window_height
+        new_y = ((self.main_window_y_offset + self.tracking_parameters_window_size[1] + self.main_window_spacing + self.preview_parameters_y_offset + (3 * 2 * self.preview_parameters_height)) / 1400) * self.main_window_height
         self.preview_eyes_threshold_checkbox.move(new_x, new_y)
         self.preview_eyes_threshold_checkbox.stateChanged.connect(self.check_preview_eyes_threshold_checkbox)
         self.preview_eyes_threshold_checkbox_label = QLabel(self)
-        new_label_y = ((self.main_window_y_offset + self.descriptors_window_size[1] + self.main_window_spacing + self.preview_parameters_y_offset + self.preview_parameters_y_spacing + (3 * 2 * self.preview_parameters_height)) / 1400) * self.main_window_height
+        new_label_y = ((self.main_window_y_offset + self.tracking_parameters_window_size[1] + self.main_window_spacing + self.preview_parameters_y_offset + self.preview_parameters_y_spacing + (3 * 2 * self.preview_parameters_height)) / 1400) * self.main_window_height
         self.preview_eyes_threshold_checkbox_label.move(new_label_x, new_label_y)
         self.preview_eyes_threshold_checkbox_label.resize(new_label_width, new_label_height)
         self.preview_eyes_threshold_checkbox_label.setText('Preview Eyes Threshold')
@@ -972,7 +992,7 @@ class TrackingContent(QMainWindow):
         self.update_tracking_parameters_buttons(inactivate = True)
     def add_colour_parameters_window(self):
         new_x = self.preview_frame_window_size[0] + ((self.main_window_x_offset + (2 * self.main_window_spacing) + self.preview_parameters_window_size[0]) / 2560) * self.main_window_width
-        new_y = ((self.main_window_y_offset + self.descriptors_window_size[1] + self.main_window_spacing) / 1400) * self.main_window_height
+        new_y = ((self.main_window_y_offset + self.tracking_parameters_window_size[1] + self.main_window_spacing) / 1400) * self.main_window_height
         new_width = (self.colour_parameters_window_size[0] / 2560) * self.main_window_width
         new_height = (self.colour_parameters_window_size[1] / 1400) * self.main_window_height
 
@@ -1056,6 +1076,119 @@ class TrackingContent(QMainWindow):
         self.save_current_colours_button.setFont(self.font_colour_parameters)
         self.save_current_colours_button.clicked.connect(self.trigger_save_current_colours)
         self.update_colour_parameters_buttons(inactivate = True)
+    def add_video_playback_buttons(self):
+        new_icon_width = ((self.video_playback_button_size[0] / 2560) * self.main_window_width) - (self.video_playback_button_size[0] - self.video_playback_button_icon_size[0])
+        new_icon_height = ((self.video_playback_button_size[1] / 1400) * self.main_window_height) - (self.video_playback_button_size[1] - self.video_playback_button_icon_size[1])
+        new_y = self.preview_frame_window_size[1] + ((self.main_window_y_offset + self.main_window_spacing + self.preview_frame_window_slider_height + self.preview_frame_number_textbox_y_spacing) / 1400) * self.main_window_height
+        new_width = (self.video_playback_button_size[0] / 2560) * self.main_window_width
+        new_height = (self.video_playback_button_size[1] / 1400) * self.main_window_height
+
+        self.pause_video_button = QPushButton(self)
+        self.pause_video_button.setIcon(QIcon('button_icon_7.png'))
+        self.pause_video_button.setIconSize(QSize(new_icon_width, new_icon_height))
+        new_x = ((self.main_window_x_offset + self.preview_frame_number_textbox_label_size[0] + self.preview_frame_number_textbox_size[0] + self.video_playback_button_x_offset + (0 * (self.video_playback_button_x_spacing + self.video_playback_button_size[0]))) / 2560) * self.main_window_width
+        self.pause_video_button.move(new_x, new_y)
+        self.pause_video_button.resize(new_width, new_height)
+        self.pause_video_button.clicked.connect(self.check_pause_video_button)
+        self.pause_video_button.setCheckable(True)
+
+        self.play_video_slow_speed_button = QPushButton(self)
+        self.play_video_slow_speed_button.setIcon(QIcon('button_icon_8.png'))
+        self.play_video_slow_speed_button.setIconSize(QSize(new_icon_width, new_icon_height))
+        new_x = ((self.main_window_x_offset + self.preview_frame_number_textbox_label_size[0] + self.preview_frame_number_textbox_size[0] + self.video_playback_button_x_offset + (1 * (self.video_playback_button_x_spacing + self.video_playback_button_size[0]))) / 2560) * self.main_window_width
+        self.play_video_slow_speed_button.move(new_x, new_y)
+        self.play_video_slow_speed_button.resize(new_width, new_height)
+        self.play_video_slow_speed_button.clicked.connect(self.check_play_video_slow_speed_button)
+        self.play_video_slow_speed_button.setCheckable(True)
+
+        self.play_video_medium_speed_button = QPushButton(self)
+        self.play_video_medium_speed_button.setIcon(QIcon('button_icon_9.png'))
+        self.play_video_medium_speed_button.setIconSize(QSize(new_icon_width, new_icon_height))
+        new_x = ((self.main_window_x_offset + self.preview_frame_number_textbox_label_size[0] + self.preview_frame_number_textbox_size[0] + self.video_playback_button_x_offset + (2 * (self.video_playback_button_x_spacing + self.video_playback_button_size[0]))) / 2560) * self.main_window_width
+        self.play_video_medium_speed_button.move(new_x, new_y)
+        self.play_video_medium_speed_button.resize(new_width, new_height)
+        self.play_video_medium_speed_button.clicked.connect(self.check_play_video_medium_speed_button)
+        self.play_video_medium_speed_button.setCheckable(True)
+
+        self.play_video_max_speed_button = QPushButton(self)
+        self.play_video_max_speed_button.setIcon(QIcon('button_icon_10.png'))
+        self.play_video_max_speed_button.setIconSize(QSize(new_icon_width, new_icon_height))
+        new_x = ((self.main_window_x_offset + self.preview_frame_number_textbox_label_size[0] + self.preview_frame_number_textbox_size[0] + self.video_playback_button_x_offset + (3 * (self.video_playback_button_x_spacing + self.video_playback_button_size[0]))) / 2560) * self.main_window_width
+        self.play_video_max_speed_button.move(new_x, new_y)
+        self.play_video_max_speed_button.resize(new_width, new_height)
+        self.play_video_max_speed_button.clicked.connect(self.check_play_video_max_speed_button)
+        self.play_video_max_speed_button.setCheckable(True)
+        self.update_video_playback_buttons(inactivate = True)
+    def add_video_time_textbox(self):
+        new_y = self.preview_frame_window_size[1] + ((self.main_window_y_offset + self.main_window_spacing + self.preview_frame_window_slider_height + self.preview_frame_number_textbox_y_spacing + self.preview_frame_number_textbox_label_size[1] + self.video_time_textbox_y_spacing) / 1400) * self.main_window_height
+
+        self.video_time_textbox_label = QLabel(self)
+        new_x = (self.main_window_x_offset / 2560) * self.main_window_width
+        self.video_time_textbox_label.move(new_x, new_y)
+        new_width = (self.preview_frame_number_textbox_label_size[0] / 2560) * self.main_window_width
+        new_height = (self.preview_frame_number_textbox_label_size[1] / 1400) * self.main_window_height
+        self.video_time_textbox_label.resize(new_width, new_height)
+        self.video_time_textbox_label.setText('Time (seconds): ')
+        self.video_time_textbox_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        self.video_time_textbox_label.setFont(self.font_text)
+        self.video_time_textbox = QLineEdit(self)
+        new_x = ((self.main_window_x_offset + self.video_time_textbox_label_size[0]) / 2560) * self.main_window_width
+        self.video_time_textbox.move(new_x, new_y)
+        new_width = (self.video_time_textbox_size[0] / 2560) * self.main_window_width
+        new_height = (self.video_time_textbox_size[1] / 1400) * self.main_window_height
+        self.video_time_textbox.resize(new_width, new_height)
+        self.video_time_textbox.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+        self.video_time_textbox.setFont(self.font_text)
+        self.video_time_textbox.returnPressed.connect(self.check_video_time_textbox)
+        self.update_video_time_textbox(inactivate = True)
+    def add_status_window(self):
+        new_x = self.preview_frame_window_size[0] + ((self.main_window_x_offset + self.main_window_spacing) / 2560) * self.main_window_width
+        new_y = ((self.main_window_y_offset + self.descriptors_window_size[1] + self.main_window_spacing) / 1400) * self.main_window_height
+        new_width = (self.status_window_size[0] / 2560) * self.main_window_width
+        new_height = (self.status_window_size[1] / 1400) * self.main_window_height
+
+        self.status_window = QLabel(self)
+        self.status_window.setFrameShape(QFrame.Panel)
+        self.status_window.setFrameShadow(QFrame.Sunken)
+        self.status_window.setLineWidth(5)
+        self.status_window.move(new_x, new_y)
+        self.status_window.resize(new_width, new_height)
+        self.status_window.setText('Status')
+        self.status_window.setAlignment(Qt.AlignHCenter | Qt.AlignTop)
+        self.status_window.setFont(self.font_title)
+    def add_statuses_to_window(self):
+        new_x = self.preview_frame_window_size[0] + ((self.main_window_x_offset + self.main_window_spacing + self.statuses_x_offset) / 2560) * self.main_window_width
+        new_y = ((self.main_window_y_offset + self.descriptors_window_size[1] + self.statuses_y_offset) / 1400) * self.main_window_height
+
+        self.status_label = QLabel(self)
+        self.status_label.move(new_x, new_y)
+        self.status_label.resize(100, 50)
+        self.status_label.setText('Ready.')
+
+        # self.calculate_background_button = QPushButton('Calculate Background', self)
+        # self.calculate_background_button.move(new_x, new_y)
+        # new_width = (self.statuses_button_size[0] / 2560) * self.main_window_width
+        # new_height = (self.statuses_button_size[1] / 1400) * self.main_window_height
+        # self.calculate_background_button.resize(new_width, new_height)
+        # self.calculate_background_button.setFont(self.font_text)
+        # self.calculate_background_button.clicked.connect(self.trigger_calculate_background)
+        self.calculate_background_progress_bar = QProgressBar(self)
+        new_y = ((self.main_window_y_offset + self.descriptors_window_size[1] + self.statuses_y_offset + self.statuses_button_size[1]) / 1400) * self.main_window_height
+        self.calculate_background_progress_bar.move(new_x, new_y)
+        new_width = (self.status_window_size[0] / 2560) * self.main_window_width
+        # new_width = self.preview_frame_window_size[0]
+        new_height = (self.status_bars_height / 1400) * self.main_window_height
+        self.calculate_background_progress_bar.resize(new_width, new_height)
+
+        self.calculate_background_button = QPushButton('Calculate Background', self)
+        new_x = self.preview_frame_window_size[0] + ((self.main_window_x_offset + self.main_window_spacing + self.statuses_x_offset + (self.status_window_size[0] / 4)) / 2560) * self.main_window_width
+        new_y = ((self.main_window_y_offset + self.descriptors_window_size[1] + self.statuses_y_offset + self.statuses_button_size[1] + self.status_bars_height + self.status_buttons_y_spacing) / 1400) * self.main_window_height
+        self.calculate_background_button.move(new_x, new_y)
+        new_width = (self.statuses_button_size[0] / 2560) * self.main_window_width
+        new_height = (self.statuses_button_size[1] / 1400) * self.main_window_height
+        self.calculate_background_button.resize(new_width, new_height)
+        self.calculate_background_button.setFont(self.font_text)
+        self.calculate_background_button.clicked.connect(self.trigger_calculate_background)
 
     # Defining Update Functions
     def update_statusbar_message(self):
@@ -1145,13 +1278,6 @@ class TrackingContent(QMainWindow):
             self.preview_frame_number_textbox.setText('{0}'.format(self.frame_number))
         else:
             self.preview_frame_number_textbox.setText('{0}'.format(0))
-    def update_update_preview_button(self, activate = False, inactivate = False):
-        if activate:
-            if not self.update_preview_button.isEnabled():
-                self.update_preview_button.setEnabled(True)
-        if inactivate:
-            if self.update_preview_button.isEnabled():
-                self.update_preview_button.setEnabled(False)
     def update_frame_change_buttons(self, activate = False, inactivate = False):
         if activate:
             if not self.large_frame_decrease_button.isEnabled():
@@ -1428,6 +1554,39 @@ class TrackingContent(QMainWindow):
             self.preview_frame_window.horizontalScrollBar().setValue(self.preview_frame_window.horizontalScrollBar().maximum() / 2)
         if self.preview_frame_window_label_size[1] > self.preview_frame_window_size[1]:
             self.preview_frame_window.verticalScrollBar().setValue(self.preview_frame_window.verticalScrollBar().maximum() / 2)
+    def update_video_playback_buttons(self, activate = False, inactivate = False, activate_pause_video_button = False):
+        if activate:
+            if not self.pause_video_button.isEnabled():
+                self.pause_video_button.setEnabled(True)
+            if not self.play_video_slow_speed_button.isEnabled():
+                self.play_video_slow_speed_button.setEnabled(True)
+            if not self.play_video_medium_speed_button.isEnabled():
+                self.play_video_medium_speed_button.setEnabled(True)
+            if not self.play_video_max_speed_button.isEnabled():
+                self.play_video_max_speed_button.setEnabled(True)
+        if inactivate:
+            if self.pause_video_button.isEnabled():
+                self.pause_video_button.setEnabled(False)
+            if self.play_video_slow_speed_button.isEnabled():
+                self.play_video_slow_speed_button.setEnabled(False)
+            if self.play_video_medium_speed_button.isEnabled():
+                self.play_video_medium_speed_button.setEnabled(False)
+            if self.play_video_max_speed_button.isEnabled():
+                self.play_video_max_speed_button.setEnabled(False)
+        if activate_pause_video_button:
+            if not self.pause_video_button.isChecked():
+                self.pause_video_button.setChecked(True)
+    def update_video_time_textbox(self, activate = False, inactivate = False):
+        if activate:
+            if not self.video_time_textbox.isEnabled():
+                self.video_time_textbox.setEnabled(True)
+        if inactivate:
+            if self.video_time_textbox.isEnabled():
+                self.video_time_textbox.setEnabled(False)
+        if self.video_time_textbox.isEnabled():
+            self.video_time_textbox.setText('{0}'.format(round(self.frame_number / self.video_fps, 2)))
+        else:
+            self.video_time_textbox.setText('{0}'.format(0))
 
     # Defining Trigger Functions
     def trigger_save_background(self):
@@ -1446,18 +1605,22 @@ class TrackingContent(QMainWindow):
     def trigger_calculate_background(self):
         if self.calculate_background_thread is None:
             if self.video_path is not None:
+                self.status_label.setText('Calculating Background...')
                 self.background_path = 'Background calculated and loaded into memory/Background calculated and loaded into memory'
                 self.calculate_background_thread = CalculateBackgroundThread()
                 self.calculate_background_thread.video_path = self.video_path
                 self.calculate_background_thread.start()
                 self.calculate_background_thread.background_calculated_signal.connect(self.update_background_from_thread)
+                self.status_label.setText('Background Calculated.')
         elif not self.calculate_background_thread.isRunning():
             if self.video_path is not None:
+                self.status_label.setText('Calculating Background...')
                 self.background_path = 'Background calculated and loaded into memory/Background calculated and loaded into memory'
                 self.calculate_background_thread = CalculateBackgroundThread()
                 self.calculate_background_thread.video_path = self.video_path
                 self.calculate_background_thread.start()
                 self.calculate_background_thread.background_calculated_signal.connect(self.update_background_from_thread)
+                self.status_label.setText('Background Calculated.')
     def trigger_select_save_path(self):
         self.save_path = QFileDialog.getExistingDirectory(self, 'Select save path.')
         if self.save_path:
@@ -1488,7 +1651,8 @@ class TrackingContent(QMainWindow):
                 self.update_preview_frame_window_scroll_bars()
                 self.update_frame_window_slider(activate = True)
                 self.update_preview_frame_number_textbox(activate = True)
-                self.update_update_preview_button(activate = True)
+                self.update_video_time_textbox(activate = True)
+                self.update_video_playback_buttons(activate = True, activate_pause_video_button = True)
                 self.update_frame_change_buttons(activate = True)
                 self.update_interactive_frame_buttons(activate = True)
                 if self.background_path:
@@ -1509,7 +1673,8 @@ class TrackingContent(QMainWindow):
             self.update_preview_frame_window()
             self.update_frame_window_slider(inactivate = True)
             self.update_preview_frame_number_textbox(inactivate = True)
-            self.update_update_preview_button(inactivate = True)
+            self.update_video_time_textbox(inactivate = True)
+            self.update_video_playback_buttons(inactivate = True)
             self.update_frame_change_buttons(inactivate = True)
             self.update_interactive_frame_buttons(activate = True)
         elif self.preview_eyes_threshold:
@@ -1527,7 +1692,7 @@ class TrackingContent(QMainWindow):
                     self.update_preview_frame_window()
                     self.update_frame_window_slider(activate = True)
                     self.update_preview_frame_number_textbox(activate = True)
-                    self.update_update_preview_button(activate = True)
+                    self.update_video_playback_buttons(activate = True, activate_pause_video_button = True)
                     self.update_frame_change_buttons(activate = True)
                     self.update_interactive_frame_buttons(activate = True)
         else:
@@ -1556,7 +1721,8 @@ class TrackingContent(QMainWindow):
                     self.update_preview_frame_window()
                     self.update_frame_window_slider(activate = True)
                     self.update_preview_frame_number_textbox(activate = True)
-                    self.update_update_preview_button(activate = True)
+                    self.update_video_time_textbox(activate = True)
+                    self.update_video_playback_buttons(activate = True)
                     self.update_frame_change_buttons(activate = True)
                     self.update_interactive_frame_buttons(activate = True)
             else:
@@ -1615,6 +1781,7 @@ class TrackingContent(QMainWindow):
         np.save('tracking_parameters.npy', tracking_parameters)
     def trigger_track_video(self):
         if self.tracking_video_thread is None:
+            self.status_label.setText('Tracking Video...')
             self.track_video_thread = TrackVideoThread()
             self.track_video_thread.video_path = self.video_path
             self.track_video_thread.n_tail_points = self.n_tail_points
@@ -1634,7 +1801,9 @@ class TrackingContent(QMainWindow):
             self.track_video_thread.extended_eyes_calculation = self.extended_eyes_calculation
             self.track_video_thread.eyes_threshold = self.eyes_threshold
             self.track_video_thread.start()
+            self.status_label.setText('Video Tracked.')
         elif not self.track_video_thread.isRunning():
+            self.status_label.setText('Tracking Video...')
             self.track_video_thread = TrackVideoThread()
             self.track_video_thread.video_path = self.video_path
             self.track_video_thread.n_tail_points = self.n_tail_points
@@ -1654,6 +1823,7 @@ class TrackingContent(QMainWindow):
             self.track_video_thread.extended_eyes_calculation = self.extended_eyes_calculation
             self.track_video_thread.eyes_threshold = self.eyes_threshold
             self.track_video_thread.start()
+            self.status_label.setText('Video Tracked.')
     def trigger_unload_all_tracking(self):
         if self.preview_background_checkbox.isChecked():
             self.preview_background_checkbox.setChecked(False)
@@ -1679,7 +1849,8 @@ class TrackingContent(QMainWindow):
         self.update_preview_parameters(inactivate = True)
         self.update_frame_window_slider(inactivate = True)
         self.update_preview_frame_number_textbox(inactivate = True)
-        self.update_update_preview_button(inactivate = True)
+        self.update_video_time_textbox(inactivate = True)
+        self.update_video_playback_buttons(inactivate = True)
         self.update_frame_change_buttons(inactivate = True)
         self.update_interactive_frame_buttons(inactivate = True)
         self.update_frame_window_slider_position()
@@ -1723,6 +1894,48 @@ class TrackingContent(QMainWindow):
     def trigger_save_current_colours(self):
         colours = {'colours' : self.colours}
         np.save('colours.npy', colours)
+    def trigger_pause_video(self):
+        if self.video_playback_thread:
+            self.video_playback_thread.close()
+        if self.play_video_slow_speed:
+            self.play_video_slow_speed = False
+        if self.play_video_medium_speed:
+            self.play_video_medium_speed = False
+        if self.play_video_max_speed:
+            self.play_video_max_speed = False
+    def trigger_play_video_slow_speed(self):
+        if self.play_video_slow_speed:
+            self.frame_number += 1
+            if self.frame_number <= self.video_n_frames:
+                self.trigger_update_preview()
+            else:
+                self.video_playback_thread.close()
+                self.frame_number = 1
+                self.trigger_update_preview()
+                self.video_playback_thread.start_thread = True
+                self.video_playback_thread.start()
+    def trigger_play_video_medium_speed(self):
+        if self.play_video_medium_speed:
+            self.frame_number += 10
+            if self.frame_number <= self.video_n_frames:
+                self.trigger_update_preview()
+            else:
+                self.video_playback_thread.close()
+                self.frame_number = 1
+                self.trigger_update_preview()
+                self.video_playback_thread.start_thread = True
+                self.video_playback_thread.start()
+    def trigger_play_video_max_speed(self):
+        if self.play_video_max_speed:
+            self.frame_number += 50
+            if self.frame_number <= self.video_n_frames:
+                self.trigger_update_preview()
+            else:
+                self.video_playback_thread.close()
+                self.frame_number = 1
+                self.trigger_update_preview()
+                self.video_playback_thread.start_thread = True
+                self.video_playback_thread.start()
 
     # Defining Check Functions
     def check_preview_frame_number_textbox(self):
@@ -1910,6 +2123,87 @@ class TrackingContent(QMainWindow):
                 self.magnify_frame_button.setChecked(False)
         else:
             self.pan_frame = False
+    def check_pause_video_button(self):
+        if not self.play_video_slow_speed and not self.play_video_medium_speed and not self.play_video_max_speed:
+            self.pause_video_button.setChecked(True)
+        if self.play_video_slow_speed_button.isChecked():
+            self.play_video_slow_speed_button.setChecked(False)
+        if self.play_video_medium_speed_button.isChecked():
+            self.play_video_medium_speed_button.setChecked(False)
+        if self.play_video_max_speed_button.isChecked():
+            self.play_video_max_speed_button.setChecked(False)
+        self.trigger_pause_video()
+    def check_play_video_slow_speed_button(self):
+        if not self.play_video_slow_speed:
+            if self.pause_video_button.isChecked():
+                self.pause_video_button.setChecked(False)
+            if self.play_video_medium_speed:
+                self.play_video_medium_speed = False
+                self.play_video_medium_speed_button.setChecked(False)
+                self.video_playback_thread.close()
+            if self.play_video_max_speed:
+                self.play_video_max_speed = False
+                self.play_video_max_speed_button.setChecked(False)
+                self.video_playback_thread.close()
+            self.video_playback_thread = VideoPlaybackThread()
+            self.video_playback_thread.start()
+            self.video_playback_thread.time_signal.connect(self.trigger_play_video_slow_speed)
+            self.play_video_slow_speed = True
+        else:
+            self.pause_video_button.setChecked(True)
+            self.trigger_pause_video()
+    def check_play_video_medium_speed_button(self):
+        if not self.play_video_medium_speed:
+            if self.pause_video_button.isChecked():
+                self.pause_video_button.setChecked(False)
+            if self.play_video_slow_speed:
+                self.play_video_slow_speed = False
+                self.play_video_slow_speed_button.setChecked(False)
+                self.video_playback_thread.close()
+            if self.play_video_max_speed:
+                self.play_video_max_speed = False
+                self.play_video_max_speed_button.setChecked(False)
+                self.video_playback_thread.close()
+            self.video_playback_thread = VideoPlaybackThread()
+            self.video_playback_thread.start()
+            self.video_playback_thread.time_signal.connect(self.trigger_play_video_medium_speed)
+            self.play_video_medium_speed = True
+        else:
+            self.pause_video_button.setChecked(True)
+            self.trigger_pause_video()
+    def check_play_video_max_speed_button(self):
+        if not self.play_video_max_speed:
+            if self.pause_video_button.isChecked():
+                self.pause_video_button.setChecked(False)
+            if self.play_video_slow_speed:
+                self.play_video_slow_speed = False
+                self.play_video_slow_speed_button.setChecked(False)
+                self.video_playback_thread.close()
+            if self.play_video_medium_speed:
+                self.play_video_medium_speed = False
+                self.play_video_medium_speed_button.setChecked(False)
+                self.video_playback_thread.close()
+            self.video_playback_thread = VideoPlaybackThread()
+            self.video_playback_thread.video_fps = self.video_fps
+            self.video_playback_thread.start()
+            self.video_playback_thread.time_signal.connect(self.trigger_play_video_max_speed)
+            self.play_video_max_speed = True
+        else:
+            self.pause_video_button.setChecked(True)
+            self.trigger_pause_video()
+    def check_video_time_textbox(self):
+        try:
+            time = float(self.video_time_textbox.text())
+            if time > self.video_n_frames / self.video_fps:
+                self.frame_number = self.video_n_frames
+            else:
+                if time > 0:
+                    self.frame_number = int(time * self.video_fps)
+                else:
+                    self.frame_number = 1
+        except:
+            pass
+        self.trigger_update_preview()
 
     # Defining Event Functions
     def event_preview_frame_window_label_mouse_clicked(self, event):
@@ -2273,8 +2567,8 @@ class PlottingContent(QMainWindow):
                 self.update_frame_window_slider(activate = True)
                 self.update_tracking_video_time_textbox(activate = True)
                 self.update_update_preview_button(activate = True)
+                self.update_video_playback_buttons(activate = True, activate_pause_video_button = True)
                 self.update_frame_change_buttons(activate = True)
-                self.update_video_playback_buttons(activate = True)
     def trigger_update_preview(self):
         if self.video_path is not None:
             success, self.frame = ut.load_frame_into_memory(self.video_path, self.frame_number - 1, convert_to_grayscale = False)
@@ -2284,6 +2578,7 @@ class PlottingContent(QMainWindow):
                 self.update_frame_window_slider(activate = True)
                 self.update_tracking_video_time_textbox(activate = True)
                 self.update_update_preview_button(activate = True)
+                self.update_video_playback_buttons(activate = True)
                 self.update_frame_change_buttons(activate = True)
     def trigger_load_tracking_results(self):
         self.tracking_data_path, _ = QFileDialog.getOpenFileName(self, "Open Tracking Data", "","Tracking Data (*.npy)", options = QFileDialog.Options())
