@@ -161,8 +161,8 @@ class TrackingContent(QMainWindow):
         self.add_colour_parameters_to_window()
         self.add_colour_parameters_buttons()
         self.add_video_time_textbox()
-        self.add_status_window()
-        self.add_statuses_to_window()
+        # self.add_status_window()
+        # self.add_statuses_to_window()
         self.setWindowTitle('Free Swimming Tail Tracking')
         self.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Ignored)
         self.resize(self.tracking_content_size[0], self.tracking_content_size[1])
@@ -261,12 +261,22 @@ class TrackingContent(QMainWindow):
             self.descriptors_x_offset = 10
             self.descriptors_y_offset = 60
             self.descriptors_height = 30
+            self.descriptors_y_spacing = 10
+            self.status_window_size = (845, 390)
+            self.statuses_x_offset = 20
+            self.statuses_y_offset = 75
+            self.status_bars_height = 30
+            self.statuses_button_size = (400, 50)
+            self.statuses_y_spacing = 10
+            self.statuses_x_spacing = 10
+            self.status_buttons_y_spacing = 10
             self.preview_frame_window_slider_height = 20
             self.preview_frame_number_textbox_y_spacing = 10
             self.preview_frame_number_textbox_label_size = (100, 25)
             self.preview_frame_number_textbox_size = (120, 25)
-            self.update_preview_button_y_spacing = 5
-            self.update_preview_button_height = 50
+            self.video_time_textbox_y_spacing = 10
+            self.video_time_textbox_label_size = (100, 25)
+            self.video_time_textbox_size = (120, 25)
             self.frame_change_button_size = (50, 50)
             self.frame_change_button_x_offset = 10
             self.frame_change_button_x_spacing = 5
@@ -275,6 +285,10 @@ class TrackingContent(QMainWindow):
             self.interactive_frame_button_icon_size = (40, 40)
             self.interactive_frame_button_x_offset = 10
             self.interactive_frame_button_x_spacing = 5
+            self.video_playback_button_size = (50, 50)
+            self.video_playback_button_x_offset = 30
+            self.video_playback_button_x_spacing = 5
+            self.video_playback_button_icon_size = (60, 60)
             self.preview_parameters_window_size = (400, 295)
             self.preview_parameters_x_offset = 10
             self.preview_parameters_y_offset = 60
@@ -1609,22 +1623,22 @@ class TrackingContent(QMainWindow):
     def trigger_calculate_background(self):
         if self.calculate_background_thread is None:
             if self.video_path is not None:
-                self.status_label.setText('Calculating Background...')
+                # self.status_label.setText('Calculating Background...')
                 self.background_path = 'Background calculated and loaded into memory/Background calculated and loaded into memory'
                 self.calculate_background_thread = CalculateBackgroundThread()
                 self.calculate_background_thread.video_path = self.video_path
                 self.calculate_background_thread.start()
                 self.calculate_background_thread.background_calculated_signal.connect(self.update_background_from_thread)
-                self.status_label.setText('Background Calculated.')
+                # self.status_label.setText('Background Calculated.')
         elif not self.calculate_background_thread.isRunning():
             if self.video_path is not None:
-                self.status_label.setText('Calculating Background...')
+                # self.status_label.setText('Calculating Background...')
                 self.background_path = 'Background calculated and loaded into memory/Background calculated and loaded into memory'
                 self.calculate_background_thread = CalculateBackgroundThread()
                 self.calculate_background_thread.video_path = self.video_path
                 self.calculate_background_thread.start()
                 self.calculate_background_thread.background_calculated_signal.connect(self.update_background_from_thread)
-                self.status_label.setText('Background Calculated.')
+                # self.status_label.setText('Background Calculated.')
     def trigger_select_save_path(self):
         self.save_path = QFileDialog.getExistingDirectory(self, 'Select save path.')
         if self.save_path:
@@ -1785,7 +1799,7 @@ class TrackingContent(QMainWindow):
         np.save('tracking_parameters.npy', tracking_parameters)
     def trigger_track_video(self):
         if self.tracking_video_thread is None:
-            self.status_label.setText('Tracking Video...')
+            # self.status_label.setText('Tracking Video...')
             self.track_video_thread = TrackVideoThread()
             self.track_video_thread.video_path = self.video_path
             self.track_video_thread.n_tail_points = self.n_tail_points
@@ -1805,9 +1819,9 @@ class TrackingContent(QMainWindow):
             self.track_video_thread.extended_eyes_calculation = self.extended_eyes_calculation
             self.track_video_thread.eyes_threshold = self.eyes_threshold
             self.track_video_thread.start()
-            self.status_label.setText('Video Tracked.')
+            # self.status_label.setText('Video Tracked.')
         elif not self.track_video_thread.isRunning():
-            self.status_label.setText('Tracking Video...')
+            # self.status_label.setText('Tracking Video...')
             self.track_video_thread = TrackVideoThread()
             self.track_video_thread.video_path = self.video_path
             self.track_video_thread.n_tail_points = self.n_tail_points
@@ -1827,7 +1841,7 @@ class TrackingContent(QMainWindow):
             self.track_video_thread.extended_eyes_calculation = self.extended_eyes_calculation
             self.track_video_thread.eyes_threshold = self.eyes_threshold
             self.track_video_thread.start()
-            self.status_label.setText('Video Tracked.')
+            # self.status_label.setText('Video Tracked.')
     def trigger_unload_all_tracking(self):
         if self.preview_background_checkbox.isChecked():
             self.preview_background_checkbox.setChecked(False)
@@ -2540,7 +2554,7 @@ class PlottingContent(QMainWindow):
                 self.large_frame_increase_button.setEnabled(False)
     def update_frame_window_slider_position(self):
         self.frame_window_slider.setValue(self.frame_number)
-    def update_video_playback_buttons(self, activate = False, inactivate = False):
+    def update_video_playback_buttons(self, activate = False, inactivate = False, activate_pause_video_button = False):
         if activate:
             if not self.pause_video_button.isEnabled():
                 self.pause_video_button.setEnabled(True)
@@ -2559,6 +2573,9 @@ class PlottingContent(QMainWindow):
                 self.play_video_medium_speed_button.setEnabled(False)
             if self.play_video_max_speed_button.isEnabled():
                 self.play_video_max_speed_button.setEnabled(False)
+        if activate_pause_video_button:
+            if not self.pause_video_button.isChecked():
+                self.pause_video_button.setChecked(True)
 
     def trigger_open_tracked_video(self):
         self.video_path, _ = QFileDialog.getOpenFileName(self, "Open Video File", "","Video Files (*.avi; *.mp4)", options = QFileDialog.Options())

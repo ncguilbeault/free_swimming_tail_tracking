@@ -32,7 +32,7 @@ def get_video_format_from_video(video_path):
     capture.release()
     return video_format
 
-def calculate_background(video_path, save_path = None, num_backgrounds = 1, save_background = False, dark_invert = False):
+def calculate_background(video_path, method = 'brightest', save_path = None, num_backgrounds = 1, save_background = False):
 
     '''
     Function that calculates the background of a video.
@@ -50,14 +50,12 @@ def calculate_background(video_path, save_path = None, num_backgrounds = 1, save
         video_path (str) - Path to the video.
 
     Optional Arguments:
+        method (str) - Method to use for calculating background. Different types of methods include brightest, darkest and mode. Default = brightest.
         num_backgrounds (int) - Number of returned backgrounds. Default = 1.
             ** Useful for long videos when the background illumination fluctuates over time.
         save_background (bool) - Saves the background(s) seperately into external TIFF files. Default = False.
             ** Location of images can be found in path to video.
             ** Name of file will be {name of video}_background.tif
-        background_invert (bool) - Inverts the background calculation. Default = False.
-            ** When False, calculates the brightest pixel values as the background image. This assumes the foreground is darker than the background.
-            ** When True, calculates the darkest pixel values as the background. This assumes the foreground is brighter than the background.
 
     Returns:
         background_array (list(num_backgrounds, frame width, frame height)) - Array of calculated background images.
@@ -67,14 +65,14 @@ def calculate_background(video_path, save_path = None, num_backgrounds = 1, save
     if not isinstance(video_path, str):
         print('Error: video_path must be formatted as a string.')
         return
+    if not isinstance(method, str) or method not in ['brightest', 'darkest', 'mode']:
+        print('Error: method must be formatted as a string and must be one of the following: brightest, darkest, or mode.')
+        return
     if not isinstance(num_backgrounds, int):
         print('Error: num_backgrounds must be formatted as an integer.')
         return
     if not isinstance(save_background, bool):
         print('Error: save_background must be formatted as a boolean (True/False).')
-        return
-    if not isinstance(dark_invert, bool):
-        print('Error: background_invert must be formatted as a boolean (True/False).')
         return
 
     try:
@@ -99,15 +97,15 @@ def calculate_background(video_path, save_path = None, num_backgrounds = 1, save
                 # Copy frame into background if this is the first frame.
                 if frame_num == 0:
                     background = frame.copy().astype(np.float32)
-                if dark_invert:
-                    # Create a mask where the background is compared to the frame in the loop and used to update the background where the frame is.
-                    mask = np.greater(background, frame)
-                    # Update the background image where all of the pixels in the new frame are darker than the background image.
-                    background[mask] = frame[mask]
-                else:
+                if method == 'brightest':
                     # Create a mask where the background is compared to the frame in the loop and used to update the background where the frame is.
                     mask = np.less(background, frame)
                     # Update the background image where all of the pixels in the new frame are brighter than the background image.
+                    background[mask] = frame[mask]
+                elif method == 'darkest':
+                    # Create a mask where the background is compared to the frame in the loop and used to update the background where the frame is.
+                    mask = np.greater(background, frame)
+                    # Update the background image where all of the pixels in the new frame are darker than the background image.
                     background[mask] = frame[mask]
                 # Compare the current number of frames iterated through to the number of backgrounds requested and add the background to the background array.
                 if frame_num > 0 and frame_num % background_chunk_index == 0:
@@ -832,12 +830,6 @@ def track_video(video_path, colours, n_tail_points, dist_tail_points, dist_eyes,
 
     t0 = time.time()
 
-    # Create or load background image.
-    if background_path is None:
-        background = calculate_background(video_path, save_path, save_background = save_background)[0].astype(np.uint8)
-    else:
-        background = cv2.imread(background_path, cv2.IMREAD_GRAYSCALE).astype(np.uint8)
-
     if line_length == 0:
         line_length = dist_eyes
 
@@ -846,6 +838,12 @@ def track_video(video_path, colours, n_tail_points, dist_tail_points, dist_eyes,
 
     if save_path == None:
         save_path = os.path.dirname(video_path)
+
+    # Create or load background image.
+    if background_path is None:
+        background = calculate_background(video_path, save_path = save_path, save_background = save_background)[0]
+    else:
+        background = cv2.imread(background_path, cv2.IMREAD_GRAYSCALE).astype(np.uint8)
 
     video_n_frames = get_total_frame_number_from_video(video_path)
     frame_size = get_frame_size_from_video(video_path)
